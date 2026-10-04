@@ -1,0 +1,2181 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Sistema de Gestión Hotelera</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+</head>
+
+<body>
+
+<!-- =====================================================
+     SIDEBAR
+===================================================== -->
+
+<aside class="sidebar">
+
+    <div class="logo">
+
+        <div class="logo-icono">
+            🏨
+        </div>
+
+        <div>
+            <h2>GRAND HOTEL</h2>
+            <span>Sistema de Gestión</span>
+        </div>
+
+    </div>
+
+
+    <nav>
+
+        <button
+            class="menu-item activo"
+            onclick="mostrarSeccion('inicio', this)"
+        >
+            🏠 Inicio
+        </button>
+
+
+        <button
+            class="menu-item"
+            onclick="mostrarSeccion('habitaciones', this)"
+        >
+            🛏 Habitaciones
+        </button>
+
+
+        <button
+            class="menu-item"
+            onclick="mostrarSeccion('reservas', this)"
+        >
+            📅 Reservas
+        </button>
+
+
+        <button
+            class="menu-item"
+            onclick="mostrarSeccion('huespedes', this)"
+        >
+            👥 Huéspedes
+        </button>
+
+
+        <button
+            class="menu-item"
+            onclick="abrirCheckInDirecto()"
+        >
+            🔑 Check-in directo
+        </button>
+
+
+        <button
+            class="menu-item"
+            onclick="mostrarSeccion('productos', this)"
+        >
+            🛒 Productos
+        </button>
+
+
+        <button
+            class="menu-item"
+            onclick="mostrarSeccion('consumos', this)"
+        >
+            🍺 Consumos
+        </button>
+
+
+        <button
+            class="menu-item"
+            onclick="mostrarSeccion('caja', this)"
+        >
+            💰 Caja diaria
+        </button>
+
+
+        <button
+            class="menu-item"
+            onclick="mostrarSeccion('reportes', this)"
+        >
+            📊 Reportes
+        </button>
+
+
+        <button
+            class="menu-item"
+            onclick="mostrarSeccion('historial', this)"
+        >
+            📋 Historial
+        </button>
+
+
+        <button
+            class="menu-item"
+            onclick="mostrarSeccion('seguridad', this)"
+        >
+            💾 Respaldo
+        </button>
+
+    </nav>
+
+</aside>
+
+
+
+<!-- =====================================================
+     CONTENIDO
+===================================================== -->
+
+<div class="contenido">
+
+
+    <!-- TOPBAR -->
+
+    <header class="topbar">
+
+        <div class="titulo-topbar">
+
+            <h1 id="tituloPagina">
+                Panel principal
+            </h1>
+
+            <p id="fechaActual"></p>
+
+        </div>
+
+
+        <div class="usuario">
+
+            <div>
+
+                <strong>
+                    Administrador
+                </strong>
+
+                <small>
+                    Recepción
+                </small>
+
+            </div>
+
+            <div class="avatar">
+                A
+            </div>
+
+        </div>
+
+    </header>
+
+
+
+    <!-- =================================================
+         INICIO
+    ================================================== -->
+
+    <section
+        id="inicio"
+        class="seccion activa"
+    >
+
+        <div class="encabezado-seccion">
+
+            <div>
+
+                <h2>
+                    Panel principal
+                </h2>
+
+                <p>
+                    Resumen general del hotel
+                </p>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="resumen">
+
+            <div class="card-resumen">
+
+                <div class="icono-card azul">
+                    🏨
+                </div>
+
+                <div>
+                    <span>Total habitaciones</span>
+                    <h2 id="totalHabitaciones">0</h2>
+                </div>
+
+            </div>
+
+
+            <div class="card-resumen">
+
+                <div class="icono-card verde">
+                    ✓
+                </div>
+
+                <div>
+                    <span>Disponibles hoy</span>
+                    <h2 id="totalDisponibles">0</h2>
+                </div>
+
+            </div>
+
+
+            <div class="card-resumen">
+
+                <div class="icono-card rojo">
+                    🔑
+                </div>
+
+                <div>
+                    <span>Ocupadas</span>
+                    <h2 id="totalOcupadas">0</h2>
+                </div>
+
+            </div>
+
+
+            <div class="card-resumen">
+
+                <div class="icono-card amarillo">
+                    🧹
+                </div>
+
+                <div>
+                    <span>Limpieza</span>
+                    <h2 id="totalLimpieza">0</h2>
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="panel">
+
+            <div class="panel-cabecera">
+
+                <div>
+                    <h3>Estado de habitaciones</h3>
+                    <p>Situación actual del hotel</p>
+                </div>
+
+            </div>
+
+            <div
+                id="habitacionesInicio"
+                class="habitaciones-grid"
+            ></div>
+
+        </div>
+
+
+
+        <div class="panel">
+
+            <div class="panel-cabecera">
+
+                <div>
+                    <h3>Últimas reservas</h3>
+                    <p>Reservas registradas recientemente</p>
+                </div>
+
+            </div>
+
+
+            <div class="tabla-responsive">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+                            <th>Huésped</th>
+                            <th>Habitación</th>
+                            <th>Entrada</th>
+                            <th>Salida</th>
+                            <th>Estado</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="reservasInicio"></tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =================================================
+         HABITACIONES
+    ================================================== -->
+
+    <section
+        id="habitaciones"
+        class="seccion"
+    >
+
+        <div class="encabezado-seccion">
+
+            <div>
+                <h2>Habitaciones</h2>
+                <p>Administración de habitaciones</p>
+            </div>
+
+
+            <button
+                class="btn-principal"
+                onclick="abrirModalHabitacion()"
+            >
+                + Nueva habitación
+            </button>
+
+        </div>
+
+
+
+        <div class="filtros">
+
+            <button
+                class="filtro activo"
+                onclick="filtrarHabitaciones('TODAS', this)"
+            >
+                Todas
+            </button>
+
+            <button
+                class="filtro"
+                onclick="filtrarHabitaciones('DISPONIBLE', this)"
+            >
+                Disponibles
+            </button>
+
+            <button
+                class="filtro"
+                onclick="filtrarHabitaciones('OCUPADA', this)"
+            >
+                Ocupadas
+            </button>
+
+            <button
+                class="filtro"
+                onclick="filtrarHabitaciones('LIMPIEZA', this)"
+            >
+                Limpieza
+            </button>
+
+            <button
+                class="filtro"
+                onclick="filtrarHabitaciones('MANTENIMIENTO', this)"
+            >
+                Mantenimiento
+            </button>
+
+        </div>
+
+
+        <div
+            id="listaHabitaciones"
+            class="habitaciones-grid"
+        ></div>
+
+    </section>
+
+
+
+    <!-- =================================================
+         RESERVAS
+    ================================================== -->
+
+    <section
+        id="reservas"
+        class="seccion"
+    >
+
+        <div class="encabezado-seccion">
+
+            <div>
+                <h2>Reservas</h2>
+
+                <p>
+                    Reservas actuales y futuras
+                </p>
+            </div>
+
+
+            <button
+                class="btn-principal"
+                onclick="abrirModalReserva()"
+            >
+                + Nueva reserva
+            </button>
+
+        </div>
+
+
+
+        <div class="panel">
+
+            <div class="buscador">
+
+                <input
+                    type="text"
+                    id="buscarReserva"
+                    placeholder="Buscar huésped, DNI o habitación..."
+                    oninput="renderReservas()"
+                >
+
+            </div>
+
+
+            <div class="tabla-responsive">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>#</th>
+
+                            <th>Huésped</th>
+
+                            <th>DNI</th>
+
+                            <th>Habitación</th>
+
+                            <th>Entrada</th>
+
+                            <th>Salida</th>
+
+                            <th>Total</th>
+
+                            <th>Estado</th>
+
+                            <th>Acciones</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="tablaReservas"></tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =================================================
+         HUÉSPEDES
+    ================================================== -->
+
+    <section
+        id="huespedes"
+        class="seccion"
+    >
+
+        <div class="encabezado-seccion">
+
+            <div>
+                <h2>Huéspedes</h2>
+                <p>Registro de huéspedes</p>
+            </div>
+
+        </div>
+
+
+        <div class="panel">
+
+            <div class="buscador">
+
+                <input
+                    type="text"
+                    id="buscarHuesped"
+                    placeholder="Buscar por nombre o DNI..."
+                    oninput="renderHuespedes()"
+                >
+
+            </div>
+
+
+            <div class="tabla-responsive">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+                            <th>Huésped</th>
+                            <th>DNI</th>
+                            <th>Teléfono</th>
+                            <th>Habitación</th>
+                            <th>Estado</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="tablaHuespedes"></tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =================================================
+         PRODUCTOS
+    ================================================== -->
+
+    <section
+        id="productos"
+        class="seccion"
+    >
+
+        <div class="encabezado-seccion">
+
+            <div>
+                <h2>Productos</h2>
+
+                <p>
+                    Inventario del hotel
+                </p>
+            </div>
+
+
+            <button
+                class="btn-principal"
+                onclick="abrirModalProducto()"
+            >
+                + Nuevo producto
+            </button>
+
+        </div>
+
+
+
+        <div class="resumen">
+
+            <div class="card-resumen">
+
+                <div class="icono-card azul">
+                    📦
+                </div>
+
+                <div>
+
+                    <span>
+                        Productos
+                    </span>
+
+                    <h2 id="totalProductos">
+                        0
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div class="card-resumen">
+
+                <div class="icono-card verde">
+                    🛒
+                </div>
+
+                <div>
+
+                    <span>
+                        Stock total
+                    </span>
+
+                    <h2 id="stockTotal">
+                        0
+                    </h2>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="panel">
+
+            <div class="buscador">
+
+                <input
+                    type="text"
+                    id="buscarProducto"
+                    placeholder="Buscar producto..."
+                    oninput="renderProductos()"
+                >
+
+            </div>
+
+
+            <div class="tabla-responsive">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Producto</th>
+
+                            <th>Categoría</th>
+
+                            <th>Precio</th>
+
+                            <th>Stock</th>
+
+                            <th>Acciones</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="tablaProductos"></tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =================================================
+         CONSUMOS
+    ================================================== -->
+
+    <section
+        id="consumos"
+        class="seccion"
+    >
+
+        <div class="encabezado-seccion">
+
+            <div>
+                <h2>Consumos</h2>
+
+                <p>
+                    Productos cargados a habitaciones
+                </p>
+            </div>
+
+
+            <button
+                class="btn-principal"
+                onclick="abrirModalConsumo()"
+            >
+                + Agregar consumo
+            </button>
+
+        </div>
+
+
+        <div class="panel">
+
+            <div class="tabla-responsive">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Fecha</th>
+
+                            <th>Habitación</th>
+
+                            <th>Huésped</th>
+
+                            <th>Producto</th>
+
+                            <th>Cantidad</th>
+
+                            <th>Precio</th>
+
+                            <th>Total</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="tablaConsumos"></tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =================================================
+         CAJA
+    ================================================== -->
+
+    <section
+        id="caja"
+        class="seccion"
+    >
+
+        <div class="encabezado-seccion">
+
+            <div>
+                <h2>Caja diaria</h2>
+                <p>Pagos recibidos</p>
+            </div>
+
+        </div>
+
+
+        <div class="filtro-fechas">
+
+            <div class="campo">
+
+                <label>
+                    Fecha
+                </label>
+
+                <input
+                    type="date"
+                    id="fechaCaja"
+                    onchange="renderCaja()"
+                >
+
+            </div>
+
+        </div>
+
+
+
+        <div class="panel apertura-caja-panel">
+
+            <div>
+                <strong>💵 Apertura de caja</strong>
+                <p>Ingresa con cuánto efectivo comienzas el día.</p>
+            </div>
+
+            <div class="apertura-caja-controles">
+                <input type="number" id="montoAperturaCaja" min="0" step="0.01" placeholder="0.00">
+                <button class="btn-principal" onclick="guardarAperturaCaja()">Guardar apertura</button>
+            </div>
+
+            <div class="apertura-caja-resumen">
+                <span>Inicio: <strong id="cajaMontoInicial">S/ 0.00</strong></span>
+                <span>Efectivo esperado: <strong id="cajaEfectivoEsperado">S/ 0.00</strong></span>
+            </div>
+
+        </div>
+
+
+        <div class="resumen resumen-caja">
+
+            <div class="card-resumen">
+
+                <div>
+                    <span>Efectivo</span>
+                    <h2 id="cajaEfectivo">
+                        S/ 0.00
+                    </h2>
+                </div>
+
+            </div>
+
+
+            <div class="card-resumen">
+
+                <div>
+                    <span>Yape</span>
+                    <h2 id="cajaYape">
+                        S/ 0.00
+                    </h2>
+                </div>
+
+            </div>
+
+
+            <div class="card-resumen">
+
+                <div>
+                    <span>Plin</span>
+                    <h2 id="cajaPlin">
+                        S/ 0.00
+                    </h2>
+                </div>
+
+            </div>
+
+
+            <div class="card-resumen">
+
+                <div>
+                    <span>Tarjeta</span>
+                    <h2 id="cajaTarjeta">
+                        S/ 0.00
+                    </h2>
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="panel total-caja-panel">
+
+            <span>
+                TOTAL DEL DÍA
+            </span>
+
+            <strong id="cajaTotal">
+                S/ 0.00
+            </strong>
+
+        </div>
+
+
+
+        <div class="panel">
+
+            <div class="tabla-responsive">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+                            <th>Hora</th>
+                            <th>Habitación</th>
+                            <th>Huésped</th>
+                            <th>Método</th>
+                            <th>Monto</th>
+                            <th>Comprobante</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="tablaCaja"></tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =================================================
+         REPORTES
+    ================================================== -->
+
+    <section
+        id="reportes"
+        class="seccion"
+    >
+
+        <div class="encabezado-seccion">
+
+            <div>
+                <h2>Reportes</h2>
+
+                <p>
+                    Consulta por rango de fechas
+                </p>
+            </div>
+
+        </div>
+
+
+        <div class="panel">
+
+            <div class="filtro-reporte">
+
+                <div class="campo">
+
+                    <label>
+                        Desde
+                    </label>
+
+                    <input
+                        type="date"
+                        id="reporteDesde"
+                    >
+
+                </div>
+
+
+                <div class="campo">
+
+                    <label>
+                        Hasta
+                    </label>
+
+                    <input
+                        type="date"
+                        id="reporteHasta"
+                    >
+
+                </div>
+
+
+                <button
+                    class="btn-principal"
+                    onclick="generarReporte()"
+                >
+                    Generar reporte
+                </button>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="resumen">
+
+            <div class="card-resumen">
+
+                <div>
+                    <span>Ingresos</span>
+
+                    <h2 id="reporteIngresos">
+                        S/ 0.00
+                    </h2>
+                </div>
+
+            </div>
+
+
+            <div class="card-resumen">
+
+                <div>
+                    <span>Reservas</span>
+
+                    <h2 id="reporteReservas">
+                        0
+                    </h2>
+                </div>
+
+            </div>
+
+
+            <div class="card-resumen">
+
+                <div>
+                    <span>Consumos</span>
+
+                    <h2 id="reporteConsumos">
+                        S/ 0.00
+                    </h2>
+                </div>
+
+            </div>
+
+
+            <div class="card-resumen">
+
+                <div>
+                    <span>Canceladas</span>
+
+                    <h2 id="reporteCanceladas">
+                        0
+                    </h2>
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="panel tabla-reporte">
+
+            <div class="tabla-responsive">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Huésped</th>
+                            <th>Habitación</th>
+                            <th>Método</th>
+                            <th>Monto</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="tablaReporte"></tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =================================================
+         HISTORIAL
+    ================================================== -->
+
+    <section
+        id="historial"
+        class="seccion"
+    >
+
+        <div class="encabezado-seccion">
+
+            <div>
+
+                <h2>
+                    Historial de movimientos
+                </h2>
+
+                <p>
+                    Registro de operaciones realizadas en el sistema
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="panel">
+
+            <div class="buscador">
+
+                <input
+                    type="text"
+                    id="buscarHistorial"
+                    placeholder="Buscar habitación, huésped, acción..."
+                    oninput="renderHistorial()"
+                >
+
+            </div>
+
+
+            <div class="tabla-responsive">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Fecha y hora</th>
+
+                            <th>Acción</th>
+
+                            <th>Habitación</th>
+
+                            <th>Detalle</th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="tablaHistorial"></tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =================================================
+         RESPALDO
+    ================================================== -->
+
+    <section
+        id="seguridad"
+        class="seccion"
+    >
+
+        <div class="encabezado-seccion">
+
+            <div>
+
+                <h2>
+                    Respaldo de información
+                </h2>
+
+                <p>
+                    Protege los datos del hotel
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="panel">
+
+            <div class="seguridad-cabecera">
+
+                <div class="seguridad-icono">
+                    💾
+                </div>
+
+
+                <div>
+
+                    <h3>
+                        Copia de seguridad
+                    </h3>
+
+                    <p>
+                        El respaldo guarda habitaciones,
+                        reservas, huéspedes, productos,
+                        consumos, pagos e historial.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="seguridad-botones">
+
+                <button
+                    class="btn-respaldo"
+                    onclick="crearRespaldo()"
+                >
+                    💾 Crear respaldo
+                </button>
+
+
+                <button
+                    class="btn-restaurar"
+                    onclick="seleccionarRespaldo()"
+                >
+                    📂 Restaurar respaldo
+                </button>
+
+            </div>
+
+
+            <input
+                type="file"
+                id="archivoRespaldo"
+                accept=".json,application/json"
+                onchange="restaurarRespaldo(event)"
+                hidden
+            >
+
+
+            <div class="aviso-respaldo">
+
+                ⚠️ Guarda el archivo de respaldo en un
+                lugar seguro, por ejemplo una memoria USB
+                o una carpeta externa.
+
+            </div>
+
+
+            <div class="lista-seguridad">
+
+                <div>
+                    ✓ Habitaciones
+                </div>
+
+                <div>
+                    ✓ Reservas
+                </div>
+
+                <div>
+                    ✓ Productos
+                </div>
+
+                <div>
+                    ✓ Consumos
+                </div>
+
+                <div>
+                    ✓ Pagos
+                </div>
+
+                <div>
+                    ✓ Historial
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</div>
+
+
+
+<!-- =====================================================
+     MODAL HABITACIÓN
+===================================================== -->
+
+<div
+    id="modalHabitacion"
+    class="modal"
+>
+
+    <div class="modal-contenido">
+
+        <button
+            class="cerrar"
+            onclick="cerrarModal('modalHabitacion')"
+        >
+            ×
+        </button>
+
+
+        <h2 id="tituloModalHabitacion">
+            Nueva habitación
+        </h2>
+
+
+        <input
+            type="hidden"
+            id="habitacionEditandoId"
+        >
+
+
+        <div class="form-grid">
+
+            <div class="campo">
+
+                <label>
+                    Número
+                </label>
+
+                <input
+                    type="text"
+                    id="numeroHabitacion"
+                    placeholder="Ejemplo: 101"
+                >
+
+            </div>
+
+
+            <div class="campo">
+
+                <label>
+                    Tipo
+                </label>
+
+                <select id="tipoHabitacion">
+
+                    <option value="Simple">
+                        Simple
+                    </option>
+
+                    <option value="Matrimonial">
+                        Matrimonial
+                    </option>
+
+                    <option value="Doble">
+                        Doble
+                    </option>
+
+                    <option value="Triple">
+                        Triple
+                    </option>
+
+                    <option value="Suite">
+                        Suite
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="campo">
+
+                <label>
+                    Precio por día
+                </label>
+
+                <input
+                    type="number"
+                    id="precioHabitacion"
+                    min="0"
+                    step="0.01"
+                >
+
+            </div>
+
+
+            <div class="campo">
+
+                <label>
+                    Precio por hora
+                </label>
+
+                <input
+                    type="number"
+                    id="precioHoraHabitacion"
+                    min="0"
+                    step="0.01"
+                >
+
+            </div>
+
+
+            <div class="campo">
+
+                <label>
+                    Estado
+                </label>
+
+                <select id="estadoHabitacion">
+
+                    <option value="DISPONIBLE">
+                        Disponible
+                    </option>
+
+                    <option value="LIMPIEZA">
+                        Limpieza
+                    </option>
+
+                    <option value="MANTENIMIENTO">
+                        Mantenimiento
+                    </option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+
+        <button
+            class="btn-guardar"
+            onclick="guardarHabitacion()"
+        >
+            Guardar habitación
+        </button>
+
+    </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     MODAL RESERVA
+===================================================== -->
+
+<div
+    id="modalReserva"
+    class="modal"
+>
+
+    <div class="modal-contenido modal-grande">
+
+        <button
+            class="cerrar"
+            onclick="cerrarModal('modalReserva')"
+        >
+            ×
+        </button>
+
+
+        <h2 id="tituloModalReserva">
+            Nueva reserva
+        </h2>
+
+
+        <input
+            type="hidden"
+            id="reservaEditandoId"
+        >
+
+
+        <div class="form-grid">
+
+            <div class="campo">
+
+                <label>
+                    Nombre del huésped
+                </label>
+
+                <input
+                    type="text"
+                    id="nombreReserva"
+                >
+
+            </div>
+
+
+            <div class="campo">
+
+                <label>
+                    DNI
+                </label>
+
+                <input
+                    type="text"
+                    id="dniReserva"
+                    maxlength="8"
+                >
+
+            </div>
+
+
+            <div class="campo">
+
+                <label>
+                    Teléfono
+                </label>
+
+                <input
+                    type="text"
+                    id="telefonoReserva"
+                >
+
+            </div>
+
+
+            <div class="campo">
+
+                <label>
+                    Habitación
+                </label>
+
+                <select
+                    id="habitacionReserva"
+                    onchange="calcularReserva()"
+                ></select>
+
+            </div>
+
+
+            <div class="campo">
+
+                <label>
+                    Fecha de entrada
+                </label>
+
+                <input
+                    type="date"
+                    id="entradaReserva"
+                    onchange="actualizarHabitacionesReserva(); calcularReserva();"
+                >
+
+            </div>
+
+
+            <div class="campo">
+
+                <label>
+                    Fecha de salida
+                </label>
+
+                <input
+                    type="date"
+                    id="salidaReserva"
+                    onchange="actualizarHabitacionesReserva(); calcularReserva();"
+                >
+
+            </div>
+
+        </div>
+
+
+        <div class="calculo-reserva">
+
+            <span>
+                Total hospedaje
+            </span>
+
+            <strong id="totalReserva">
+                S/ 0.00
+            </strong>
+
+        </div>
+
+
+        <button
+            class="btn-guardar"
+            onclick="guardarReserva()"
+        >
+            Guardar reserva
+        </button>
+
+    </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     CHECK-IN
+===================================================== -->
+
+<div
+    id="modalCheckIn"
+    class="modal"
+>
+
+    <div class="modal-contenido modal-grande">
+
+        <button
+            class="cerrar"
+            onclick="cerrarModal('modalCheckIn')"
+        >
+            ×
+        </button>
+
+
+        <h2>
+            Check-in directo
+        </h2>
+
+
+        <div class="form-grid">
+
+            <div class="campo">
+
+                <label>
+                    Huésped
+                </label>
+
+                <input
+                    type="text"
+                    id="checkinNombre"
+                >
+
+            </div>
+
+
+            <div class="campo">
+
+                <label>
+                    DNI
+                </label>
+
+                <input
+                    type="text"
+                    id="checkinDni"
+                    maxlength="8"
+                >
+
+            </div>
+
+
+            <div class="campo">
+
+                <label>
+                    Teléfono
+                </label>
+
+                <input
+                    type="text"
+                    id="checkinTelefono"
+                >
+
+            </div>
+
+
+            <div class="campo">
+
+                <label>
+                    Habitación
+                </label>
+
+                <select
+                    id="checkinHabitacion"
+                    onchange="calcularCheckIn()"
+                ></select>
+
+            </div>
+
+
+            <div class="campo">
+
+                <label>
+                    Tipo de estadía
+                </label>
+
+                <select
+                    id="checkinTipoEstadia"
+                    onchange="cambiarTipoEstadiaCheckIn()"
+                >
+                    <option value="DIA">Por día</option>
+                    <option value="HORAS">Por horas</option>
+                </select>
+
+            </div>
+
+
+            <div class="campo">
+
+                <label>
+                    Entrada
+                </label>
+
+                <input
+                    type="date"
+                    id="checkinEntrada"
+                    onchange="calcularCheckIn()"
+                >
+
+            </div>
+
+
+            <div class="campo" id="campoHoraEntrada" style="display:none;">
+
+                <label>Hora de entrada</label>
+
+                <input
+                    type="time"
+                    id="checkinHoraEntrada"
+                    oninput="calcularCheckIn()"
+                >
+
+            </div>
+
+
+            <div class="campo">
+
+                <label id="checkinCantidadLabel">
+                    Días
+                </label>
+
+                <input
+                    type="number"
+                    id="checkinNoches"
+                    min="1"
+                    value="1"
+                    oninput="calcularCheckIn()"
+                >
+
+            </div>
+
+
+            <div class="campo">
+
+                <label id="checkinPrecioLabel">
+                    Precio por día
+                </label>
+
+                <input
+                    type="number"
+                    id="checkinPrecioAplicado"
+                    min="0"
+                    step="0.01"
+                    oninput="calcularCheckIn(true)"
+                >
+
+            </div>
+
+
+            <div class="campo" id="campoHoraFin" style="display:none;">
+
+                <label>Termina</label>
+
+                <div id="checkinHoraFin" class="dato-fin-estadia">-</div>
+
+            </div>
+
+
+            <div class="campo">
+
+                <label>
+                    Adultos
+                </label>
+
+                <input
+                    type="number"
+                    id="checkinAdultos"
+                    min="1"
+                    value="1"
+                >
+
+            </div>
+
+
+            <div class="campo">
+
+                <label>
+                    Niños
+                </label>
+
+                <input
+                    type="number"
+                    id="checkinNinos"
+                    min="0"
+                    value="0"
+                >
+
+            </div>
+
+        </div>
+
+
+        <div class="calculo-reserva">
+
+            <span>
+                Total
+            </span>
+
+            <strong id="checkinTotal">
+                S/ 0.00
+            </strong>
+
+        </div>
+
+
+        <button
+            class="btn-guardar"
+            onclick="guardarCheckInDirecto()"
+        >
+            Realizar check-in
+        </button>
+
+    </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     PRODUCTO
+===================================================== -->
+
+<div
+    id="modalProducto"
+    class="modal"
+>
+
+    <div class="modal-contenido">
+
+        <button
+            class="cerrar"
+            onclick="cerrarModal('modalProducto')"
+        >
+            ×
+        </button>
+
+
+        <h2 id="tituloModalProducto">
+            Nuevo producto
+        </h2>
+
+
+        <input
+            type="hidden"
+            id="productoEditandoId"
+        >
+
+
+        <div class="form-grid">
+
+            <div class="campo">
+
+                <label>
+                    Producto
+                </label>
+
+                <input
+                    type="text"
+                    id="nombreProducto"
+                >
+
+            </div>
+
+
+            <div class="campo">
+
+                <label>
+                    Categoría
+                </label>
+
+                <select id="categoriaProducto">
+
+                    <option value="Bebida">
+                        Bebida
+                    </option>
+
+                    <option value="Higiene">
+                        Higiene
+                    </option>
+
+                    <option value="Snack">
+                        Snack
+                    </option>
+
+                    <option value="Otro">
+                        Otro
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="campo">
+
+                <label>
+                    Precio
+                </label>
+
+                <input
+                    type="number"
+                    id="precioProducto"
+                    min="0"
+                    step="0.01"
+                >
+
+            </div>
+
+
+            <div class="campo">
+
+                <label>
+                    Stock
+                </label>
+
+                <input
+                    type="number"
+                    id="stockProducto"
+                    min="0"
+                >
+
+            </div>
+
+        </div>
+
+
+        <button
+            class="btn-guardar"
+            onclick="guardarProducto()"
+        >
+            Guardar producto
+        </button>
+
+    </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     CONSUMO MÚLTIPLE
+===================================================== -->
+
+<div
+    id="modalConsumo"
+    class="modal"
+>
+
+    <div class="modal-contenido modal-grande">
+
+        <button
+            class="cerrar"
+            onclick="cerrarModal('modalConsumo')"
+        >
+            ×
+        </button>
+
+
+        <h2>
+            Agregar productos
+        </h2>
+
+
+        <div class="campo">
+
+            <label>
+                Habitación
+            </label>
+
+            <select
+                id="habitacionConsumo"
+                onchange="actualizarProductosConsumo()"
+            ></select>
+
+        </div>
+
+
+        <div class="cabecera-productos-consumo">
+
+            <span>Producto</span>
+
+            <span>Precio</span>
+
+            <span>Stock</span>
+
+            <span>Cantidad</span>
+
+        </div>
+
+
+        <div
+            id="listaProductosConsumo"
+            class="lista-productos-consumo"
+        ></div>
+
+
+        <div class="total-productos-consumo">
+
+            <span>
+                Total productos
+            </span>
+
+            <strong id="totalProductosConsumo">
+                S/ 0.00
+            </strong>
+
+        </div>
+
+
+        <button
+            class="btn-guardar"
+            onclick="guardarVariosConsumos()"
+        >
+            Agregar a la habitación
+        </button>
+
+    </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     CUENTA
+===================================================== -->
+
+<div
+    id="modalCuenta"
+    class="modal"
+>
+
+    <div class="modal-contenido modal-grande">
+
+        <button
+            class="cerrar"
+            onclick="cerrarModal('modalCuenta')"
+        >
+            ×
+        </button>
+
+
+        <h2>
+            Cuenta de habitación
+        </h2>
+
+
+        <div id="detalleCuenta"></div>
+
+    </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     PAGO
+===================================================== -->
+
+<div
+    id="modalPago"
+    class="modal"
+>
+
+    <div class="modal-contenido">
+
+        <button
+            class="cerrar"
+            onclick="cerrarModal('modalPago')"
+        >
+            ×
+        </button>
+
+
+        <h2>
+            Registrar pago
+        </h2>
+
+
+        <input
+            type="hidden"
+            id="pagoReservaId"
+        >
+
+
+        <div class="detalle-pago-saldo">
+
+            <span>
+                Saldo pendiente
+            </span>
+
+            <strong id="pagoSaldo">
+                S/ 0.00
+            </strong>
+
+        </div>
+
+
+        <div class="campo campo-pago">
+
+            <label>
+                Monto
+            </label>
+
+            <input
+                type="number"
+                id="pagoMonto"
+                min="0"
+                step="0.01"
+            >
+
+        </div>
+
+
+        <div class="campo campo-pago">
+
+            <label>
+                Método de pago
+            </label>
+
+            <select id="pagoMetodo">
+
+                <option value="EFECTIVO">
+                    Efectivo
+                </option>
+
+                <option value="YAPE">
+                    Yape
+                </option>
+
+                <option value="PLIN">
+                    Plin
+                </option>
+
+                <option value="TARJETA">
+                    Tarjeta
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <button
+            class="btn-guardar"
+            onclick="confirmarPago()"
+        >
+            Registrar pago
+        </button>
+
+    </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     COMPROBANTE
+===================================================== -->
+
+<div
+    id="modalComprobante"
+    class="modal"
+>
+
+    <div class="modal-contenido modal-comprobante">
+
+        <button
+            class="cerrar no-imprimir"
+            onclick="cerrarModal('modalComprobante')"
+        >
+            ×
+        </button>
+
+
+        <div id="contenidoComprobante"></div>
+
+
+        <button
+            class="btn-guardar no-imprimir"
+            onclick="imprimirComprobante()"
+        >
+            🖨 Imprimir comprobante
+        </button>
+
+    </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     NOTIFICACIÓN
+===================================================== -->
+
+<div
+    id="notificacion"
+    class="notificacion"
+></div>
+
+
+
+<!-- =====================================================
+     JAVASCRIPT
+===================================================== -->
+
+<script src="script.js"></script>
+
+</body>
