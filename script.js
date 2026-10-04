@@ -4,10 +4,10 @@
 ========================================================= */
 
 let habitaciones = JSON.parse(localStorage.getItem("hotel_habitaciones")) || [
-    { id: 1, numero: "101", tipo: "Simple", precio: 80, estado: "DISPONIBLE" },
-    { id: 2, numero: "102", tipo: "Matrimonial", precio: 120, estado: "DISPONIBLE" },
-    { id: 3, numero: "103", tipo: "Doble", precio: 140, estado: "DISPONIBLE" },
-    { id: 4, numero: "104", tipo: "Suite", precio: 200, estado: "DISPONIBLE" }
+    { id: 1, numero: "101", tipo: "Simple", precio: 80, precioHora: 20, estado: "DISPONIBLE" },
+    { id: 2, numero: "102", tipo: "Matrimonial", precio: 120, precioHora: 30, estado: "DISPONIBLE" },
+    { id: 3, numero: "103", tipo: "Doble", precio: 140, precioHora: 35, estado: "DISPONIBLE" },
+    { id: 4, numero: "104", tipo: "Suite", precio: 200, precioHora: 50, estado: "DISPONIBLE" }
 ];
 
 let productos = JSON.parse(localStorage.getItem("hotel_productos")) || [
@@ -32,6 +32,9 @@ let pagos =
 let historial =
     JSON.parse(localStorage.getItem("hotel_historial")) || [];
 
+let aperturasCaja =
+    JSON.parse(localStorage.getItem("hotel_aperturas_caja")) || {};
+
 let filtroHabitacionActual = "TODAS";
 
 let ultimaReservaCuenta = null;
@@ -53,6 +56,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     renderTodo();
 
+    iniciarControlEstadiasPorHora();
+
 });
 
 
@@ -66,9 +71,16 @@ function normalizarDatos() {
         id: Number(h.id),
         numero: String(h.numero),
         tipo: h.tipo || "Simple",
+
+        // PRECIO POR DÍA
         precio: Number(h.precio || 0),
+
+        // PRECIO POR HORA
+        precioHora: Number(h.precioHora || 0),
+
         estado: h.estado || "DISPONIBLE"
     }));
+
 
     productos = productos.map(p => ({
         id: Number(p.id),
@@ -78,37 +90,92 @@ function normalizarDatos() {
         stock: Number(p.stock || 0)
     }));
 
+
     reservas = reservas.map(r => ({
         ...r,
+
         id: Number(r.id),
-        habitacionId: Number(r.habitacionId),
-        total: Number(r.total || 0),
-        estado: r.estado || "RESERVADA",
-        creadoEn: r.creadoEn || new Date().toISOString()
+
+        habitacionId:
+            Number(r.habitacionId),
+
+        total:
+            Number(r.total || 0),
+
+        estado:
+            r.estado || "RESERVADA",
+
+        creadoEn:
+            r.creadoEn ||
+            new Date().toISOString(),
+
+        tipoEstadia:
+            r.tipoEstadia || "DIA",
+
+        horas:
+            Number(r.horas || 0),
+
+        precioAplicado:
+            Number(r.precioAplicado || 0),
+
+        fechaHoraEntrada:
+            r.fechaHoraEntrada || null,
+
+        fechaHoraSalida:
+            r.fechaHoraSalida || null,
+
+        aviso15:
+            Boolean(r.aviso15),
+
+        avisoFin:
+            Boolean(r.avisoFin)
     }));
+
 
     consumos = consumos.map(c => ({
         ...c,
+
         id: Number(c.id),
-        reservaId: Number(c.reservaId),
-        habitacionId: Number(c.habitacionId),
-        productoId: Number(c.productoId),
-        cantidad: Number(c.cantidad || 0),
-        precio: Number(c.precio || 0),
-        total: Number(c.total || 0)
+
+        reservaId:
+            Number(c.reservaId),
+
+        habitacionId:
+            Number(c.habitacionId),
+
+        productoId:
+            Number(c.productoId),
+
+        cantidad:
+            Number(c.cantidad || 0),
+
+        precio:
+            Number(c.precio || 0),
+
+        total:
+            Number(c.total || 0)
     }));
+
 
     pagos = pagos.map(p => ({
         ...p,
-        id: Number(p.id),
-        reservaId: Number(p.reservaId),
-        monto: Number(p.monto || 0)
+
+        id:
+            Number(p.id),
+
+        reservaId:
+            Number(p.reservaId),
+
+        monto:
+            Number(p.monto || 0)
     }));
+
 
     historial = historial.map(h => ({
         ...h,
         id: Number(h.id)
     }));
+
 
     guardarDatos();
 }
@@ -149,11 +216,226 @@ function guardarDatos() {
         "hotel_historial",
         JSON.stringify(historial)
     );
+
+    localStorage.setItem(
+        "hotel_aperturas_caja",
+        JSON.stringify(aperturasCaja)
+    );
 }
 
 
 /* =========================================================
-   UTILIDADES
+   FECHAS
+========================================================= */
+
+function obtenerFechaHoy() {
+
+    const fecha =
+        new Date();
+
+    const anio =
+        fecha.getFullYear();
+
+    const mes =
+        String(
+            fecha.getMonth() + 1
+        ).padStart(2, "0");
+
+    const dia =
+        String(
+            fecha.getDate()
+        ).padStart(2, "0");
+
+    return `${anio}-${mes}-${dia}`;
+}
+
+
+function fechaLocalDesdeISO(fechaISO) {
+
+    if (!fechaISO) {
+        return null;
+    }
+
+    const partes =
+        fechaISO.split("-");
+
+    return new Date(
+        Number(partes[0]),
+        Number(partes[1]) - 1,
+        Number(partes[2]),
+        12,
+        0,
+        0
+    );
+}
+
+
+function fechaLocalYYYYMMDD(fecha) {
+
+    const f =
+        new Date(fecha);
+
+    const anio =
+        f.getFullYear();
+
+    const mes =
+        String(
+            f.getMonth() + 1
+        ).padStart(2, "0");
+
+    const dia =
+        String(
+            f.getDate()
+        ).padStart(2, "0");
+
+    return `${anio}-${mes}-${dia}`;
+}
+
+
+function formatearFecha(fechaISO) {
+
+    if (!fechaISO) {
+        return "-";
+    }
+
+    const fecha =
+        fechaLocalDesdeISO(
+            fechaISO
+        );
+
+    return fecha.toLocaleDateString(
+        "es-PE"
+    );
+}
+
+
+function formatearFechaHora(fechaISO) {
+
+    if (!fechaISO) {
+        return "-";
+    }
+
+    return new Date(
+        fechaISO
+    ).toLocaleString(
+        "es-PE"
+    );
+}
+
+
+function formatearHora(fechaISO) {
+
+    if (!fechaISO) {
+        return "-";
+    }
+
+    return new Date(
+        fechaISO
+    ).toLocaleTimeString(
+        "es-PE",
+        {
+            hour: "2-digit",
+            minute: "2-digit"
+        }
+    );
+}
+
+
+function sumarDias(
+    fechaISO,
+    dias
+) {
+
+    const fecha =
+        fechaLocalDesdeISO(
+            fechaISO
+        );
+
+    fecha.setDate(
+        fecha.getDate() +
+        Number(dias)
+    );
+
+    return fechaLocalYYYYMMDD(
+        fecha
+    );
+}
+
+
+function calcularNoches(
+    entrada,
+    salida
+) {
+
+    if (
+        !entrada ||
+        !salida
+    ) {
+        return 0;
+    }
+
+    const inicio =
+        fechaLocalDesdeISO(
+            entrada
+        );
+
+    const fin =
+        fechaLocalDesdeISO(
+            salida
+        );
+
+    const diferencia =
+        fin.getTime() -
+        inicio.getTime();
+
+    return Math.max(
+        1,
+        Math.round(
+            diferencia /
+            86400000
+        )
+    );
+}
+
+
+/* =========================================================
+   DINERO
+========================================================= */
+
+function dinero(valor) {
+
+    return new Intl.NumberFormat(
+        "es-PE",
+        {
+            style: "currency",
+            currency: "PEN"
+        }
+    ).format(
+        Number(valor || 0)
+    );
+}
+
+
+/* =========================================================
+   SEGURIDAD TEXTO
+========================================================= */
+
+function escaparHTML(texto) {
+
+    const div =
+        document.createElement(
+            "div"
+        );
+
+    div.textContent =
+        texto ?? "";
+
+    return div.innerHTML;
+}
+
+
+/* =========================================================
+   GENERAR ID
 ========================================================= */
 
 function generarId(lista) {
@@ -162,50 +444,34 @@ function generarId(lista) {
         return 1;
     }
 
-    return Math.max(...lista.map(x => Number(x.id) || 0)) + 1;
+    return (
+        Math.max(
+            ...lista.map(
+                item =>
+                    Number(item.id) || 0
+            )
+        ) + 1
+    );
 }
 
 
-function obtenerFechaHoy() {
-
-    const ahora = new Date();
-
-    const año = ahora.getFullYear();
-
-    const mes = String(
-        ahora.getMonth() + 1
-    ).padStart(2, "0");
-
-    const dia = String(
-        ahora.getDate()
-    ).padStart(2, "0");
-
-    return `${año}-${mes}-${dia}`;
-}
-
-
-function fechaLocalDesdeISO(fecha) {
-
-    if (!fecha) {
-        return null;
-    }
-
-    return new Date(`${fecha}T00:00:00`);
-}
-
+/* =========================================================
+   MOSTRAR FECHA
+========================================================= */
 
 function mostrarFecha() {
 
-    const elemento = document.getElementById("fechaActual");
+    const elemento =
+        document.getElementById(
+            "fechaActual"
+        );
 
     if (!elemento) {
         return;
     }
 
-    const ahora = new Date();
-
     elemento.textContent =
-        ahora.toLocaleDateString(
+        new Date().toLocaleDateString(
             "es-PE",
             {
                 weekday: "long",
@@ -217,329 +483,50 @@ function mostrarFecha() {
 }
 
 
+/* =========================================================
+   CONFIGURAR FECHAS
+========================================================= */
+
 function configurarFechas() {
 
-    const hoy = obtenerFechaHoy();
+    const hoy =
+        obtenerFechaHoy();
 
-    const entradaReserva =
-        document.getElementById("entradaReserva");
-
-    const salidaReserva =
-        document.getElementById("salidaReserva");
-
-    const checkinEntrada =
-        document.getElementById("checkinEntrada");
+    const fechaReserva =
+        document.getElementById(
+            "reservaEntrada"
+        );
 
     const fechaCaja =
-        document.getElementById("fechaCaja");
+        document.getElementById(
+            "fechaCaja"
+        );
 
-    const reporteDesde =
-        document.getElementById("reporteDesde");
+    const checkinEntrada =
+        document.getElementById(
+            "checkinEntrada"
+        );
 
-    const reporteHasta =
-        document.getElementById("reporteHasta");
-
-    if (entradaReserva) {
-        entradaReserva.min = hoy;
+    if (
+        fechaReserva &&
+        !fechaReserva.value
+    ) {
+        fechaReserva.value = hoy;
     }
 
-    if (salidaReserva) {
-        salidaReserva.min = hoy;
-    }
-
-    if (checkinEntrada) {
-        checkinEntrada.value = hoy;
-        checkinEntrada.min = hoy;
-    }
-
-    if (fechaCaja) {
+    if (
+        fechaCaja &&
+        !fechaCaja.value
+    ) {
         fechaCaja.value = hoy;
     }
 
-    if (reporteDesde) {
-        reporteDesde.value = hoy;
+    if (
+        checkinEntrada &&
+        !checkinEntrada.value
+    ) {
+        checkinEntrada.value = hoy;
     }
-
-    if (reporteHasta) {
-        reporteHasta.value = hoy;
-    }
-}
-
-
-function formatearFecha(fecha) {
-
-    if (!fecha) {
-        return "-";
-    }
-
-    const f = fechaLocalDesdeISO(fecha);
-
-    return f.toLocaleDateString("es-PE");
-}
-
-
-function formatearFechaHora(fecha) {
-
-    if (!fecha) {
-        return "-";
-    }
-
-    return new Date(fecha).toLocaleString("es-PE");
-}
-
-
-function obtenerFechaISORegistro(fechaISO) {
-
-    if (!fechaISO) {
-        return "";
-    }
-
-    const fecha = new Date(fechaISO);
-
-    const año = fecha.getFullYear();
-
-    const mes = String(
-        fecha.getMonth() + 1
-    ).padStart(2, "0");
-
-    const dia = String(
-        fecha.getDate()
-    ).padStart(2, "0");
-
-    return `${año}-${mes}-${dia}`;
-}
-
-
-function sumarDias(fecha, dias) {
-
-    const f = fechaLocalDesdeISO(fecha);
-
-    f.setDate(
-        f.getDate() + Number(dias)
-    );
-
-    const año = f.getFullYear();
-
-    const mes = String(
-        f.getMonth() + 1
-    ).padStart(2, "0");
-
-    const dia = String(
-        f.getDate()
-    ).padStart(2, "0");
-
-    return `${año}-${mes}-${dia}`;
-}
-
-
-function calcularNoches(entrada, salida) {
-
-    if (!entrada || !salida) {
-        return 0;
-    }
-
-    const inicio = fechaLocalDesdeISO(entrada);
-
-    const fin = fechaLocalDesdeISO(salida);
-
-    const diferencia =
-        fin.getTime() - inicio.getTime();
-
-    return Math.round(
-        diferencia / 86400000
-    );
-}
-
-
-function dinero(numero) {
-
-    return `S/ ${Number(numero || 0).toFixed(2)}`;
-}
-
-
-function escaparHTML(valor) {
-
-    return String(valor ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-}
-
-
-/* =========================================================
-   HISTORIAL
-========================================================= */
-
-function registrarMovimiento(
-    accion,
-    habitacion = "-",
-    detalle = ""
-) {
-
-    historial.unshift({
-
-        id: generarId(historial),
-
-        fecha: new Date().toISOString(),
-
-        accion,
-
-        habitacion: String(habitacion || "-"),
-
-        detalle
-    });
-
-    guardarDatos();
-}
-
-
-function renderHistorial() {
-
-    const tabla =
-        document.getElementById("tablaHistorial");
-
-    if (!tabla) {
-        return;
-    }
-
-    const busqueda =
-        (
-            document.getElementById("buscarHistorial")?.value ||
-            ""
-        )
-        .trim()
-        .toLowerCase();
-
-    let lista = [...historial];
-
-    if (busqueda) {
-
-        lista = lista.filter(item =>
-
-            String(item.accion)
-                .toLowerCase()
-                .includes(busqueda)
-
-            ||
-
-            String(item.habitacion)
-                .toLowerCase()
-                .includes(busqueda)
-
-            ||
-
-            String(item.detalle)
-                .toLowerCase()
-                .includes(busqueda)
-        );
-    }
-
-    if (!lista.length) {
-
-        tabla.innerHTML = `
-            <tr>
-                <td colspan="4">
-                    No hay movimientos registrados.
-                </td>
-            </tr>
-        `;
-
-        return;
-    }
-
-    tabla.innerHTML = lista.map(item => `
-
-        <tr>
-
-            <td class="historial-fecha">
-                ${formatearFechaHora(item.fecha)}
-            </td>
-
-            <td>
-                <span class="historial-accion">
-                    ${escaparHTML(item.accion)}
-                </span>
-            </td>
-
-            <td class="historial-habitacion">
-                ${escaparHTML(item.habitacion)}
-            </td>
-
-            <td class="historial-detalle">
-                ${escaparHTML(item.detalle)}
-            </td>
-
-        </tr>
-
-    `).join("");
-}
-
-
-/* =========================================================
-   NAVEGACIÓN
-========================================================= */
-
-function mostrarSeccion(id, boton) {
-
-    document
-        .querySelectorAll(".seccion")
-        .forEach(seccion => {
-            seccion.classList.remove("activa");
-        });
-
-    document
-        .querySelectorAll(".menu-item")
-        .forEach(item => {
-            item.classList.remove("activo");
-        });
-
-    const seccion =
-        document.getElementById(id);
-
-    if (seccion) {
-        seccion.classList.add("activa");
-    }
-
-    if (boton) {
-        boton.classList.add("activo");
-    }
-
-    const titulos = {
-
-        inicio: "Panel principal",
-
-        habitaciones: "Habitaciones",
-
-        reservas: "Reservas",
-
-        huespedes: "Huéspedes",
-
-        productos: "Productos",
-
-        consumos: "Consumos",
-
-        caja: "Caja diaria",
-
-        reportes: "Reportes",
-
-        historial: "Historial de movimientos",
-
-        seguridad: "Respaldo"
-    };
-
-    const titulo =
-        document.getElementById("tituloPagina");
-
-    if (titulo) {
-        titulo.textContent =
-            titulos[id] || "Sistema Hotelero";
-    }
-
-    actualizarEstadosAutomaticos();
-
-    renderTodo();
 }
 
 
@@ -550,142 +537,173 @@ function mostrarSeccion(id, boton) {
 function abrirModal(id) {
 
     const modal =
-        document.getElementById(id);
+        document.getElementById(
+            id
+        );
 
-    if (modal) {
-        modal.classList.add("activo");
+    if (!modal) {
+        return;
     }
+
+    modal.classList.add(
+        "activo"
+    );
 }
 
 
 function cerrarModal(id) {
 
     const modal =
-        document.getElementById(id);
+        document.getElementById(
+            id
+        );
 
-    if (modal) {
-        modal.classList.remove("activo");
+    if (!modal) {
+        return;
     }
-}
 
-
-/* =========================================================
-   DISPONIBILIDAD POR FECHAS
-========================================================= */
-
-function hayCruceFechas(
-    inicioA,
-    finA,
-    inicioB,
-    finB
-) {
-
-    return (
-        inicioA < finB &&
-        finA > inicioB
+    modal.classList.remove(
+        "activo"
     );
 }
 
 
-function habitacionDisponibleParaFechas(
-    habitacionId,
-    entrada,
-    salida,
-    ignorarReservaId = null
+/* =========================================================
+   NAVEGACIÓN
+========================================================= */
+
+function mostrarSeccion(
+    nombre
 ) {
 
-    if (!entrada || !salida) {
-        return true;
+    document
+        .querySelectorAll(
+            ".seccion"
+        )
+        .forEach(
+            seccion =>
+                seccion.classList.remove(
+                    "activa"
+                )
+        );
+
+
+    const seccion =
+        document.getElementById(
+            nombre
+        );
+
+    if (seccion) {
+
+        seccion.classList.add(
+            "activa"
+        );
     }
 
-    return !reservas.some(reserva => {
 
-        if (
-            Number(reserva.habitacionId) !==
-            Number(habitacionId)
-        ) {
-            return false;
-        }
-
-        if (
-            ignorarReservaId &&
-            Number(reserva.id) ===
-            Number(ignorarReservaId)
-        ) {
-            return false;
-        }
-
-        if (
-            reserva.estado === "CANCELADA" ||
-            reserva.estado === "FINALIZADA"
-        ) {
-            return false;
-        }
-
-        return hayCruceFechas(
-            entrada,
-            salida,
-            reserva.entrada,
-            reserva.salida
+    document
+        .querySelectorAll(
+            ".menu-item"
+        )
+        .forEach(
+            boton =>
+                boton.classList.remove(
+                    "activo"
+                )
         );
-    });
+
+
+    const boton =
+        document.querySelector(
+            `[data-seccion="${nombre}"]`
+        );
+
+    if (boton) {
+
+        boton.classList.add(
+            "activo"
+        );
+    }
+
+
+    renderTodo();
 }
 
 
 /* =========================================================
-   ESTADOS AUTOMÁTICOS
+   REGISTRO DE MOVIMIENTOS
+========================================================= */
+
+function registrarMovimiento(
+    tipo,
+    referencia,
+    detalle
+) {
+
+    historial.unshift({
+
+        id:
+            generarId(
+                historial
+            ),
+
+        tipo,
+
+        referencia:
+            referencia || "",
+
+        detalle:
+            detalle || "",
+
+        fecha:
+            new Date().toISOString()
+    });
+
+
+    guardarDatos();
+}
+
+
+/* =========================================================
+   ACTUALIZAR ESTADOS
 ========================================================= */
 
 function actualizarEstadosAutomaticos() {
 
-    const hoy = obtenerFechaHoy();
+    habitaciones.forEach(
+        habitacion => {
 
-    reservas.forEach(reserva => {
+            const ocupada =
+                reservas.some(
+                    reserva =>
+                        Number(
+                            reserva.habitacionId
+                        ) ===
+                            Number(
+                                habitacion.id
+                            )
+                        &&
+                        reserva.estado ===
+                            "OCUPADA"
+                );
 
-        if (
-            reserva.estado === "CANCELADA" ||
-            reserva.estado === "FINALIZADA" ||
-            reserva.estado === "OCUPADA"
-        ) {
-            return;
+
+            if (ocupada) {
+
+                habitacion.estado =
+                    "OCUPADA";
+
+            } else if (
+                habitacion.estado ===
+                "OCUPADA"
+            ) {
+
+                habitacion.estado =
+                    "DISPONIBLE";
+            }
         }
+    );
 
-        if (reserva.entrada > hoy) {
-            reserva.estado = "RESERVADA";
-        }
-
-        if (
-            reserva.entrada <= hoy &&
-            reserva.salida > hoy
-        ) {
-            reserva.estado =
-                reserva.estado === "CHECKIN"
-                    ? "OCUPADA"
-                    : "RESERVADA";
-        }
-    });
-
-    habitaciones.forEach(habitacion => {
-
-        if (
-            habitacion.estado === "LIMPIEZA" ||
-            habitacion.estado === "MANTENIMIENTO"
-        ) {
-            return;
-        }
-
-        const ocupada = reservas.some(r =>
-            Number(r.habitacionId) ===
-                Number(habitacion.id)
-            &&
-            r.estado === "OCUPADA"
-        );
-
-        habitacion.estado =
-            ocupada
-                ? "OCUPADA"
-                : "DISPONIBLE";
-    });
 
     guardarDatos();
 }
@@ -695,7 +713,9 @@ function actualizarEstadosAutomaticos() {
    HABITACIONES
 ========================================================= */
 
-function abrirModalHabitacion(id = null) {
+function abrirModalHabitacion(
+    id = null
+) {
 
     document.getElementById(
         "habitacionEditandoId"
@@ -714,55 +734,88 @@ function abrirModalHabitacion(id = null) {
     ).value = "";
 
     document.getElementById(
+        "precioHoraHabitacion"
+    ).value = "";
+
+    document.getElementById(
         "estadoHabitacion"
-    ).value = "DISPONIBLE";
+    ).value =
+        "DISPONIBLE";
 
     document.getElementById(
         "tituloModalHabitacion"
-    ).textContent = "Nueva habitación";
+    ).textContent =
+        "Nueva habitación";
+
 
     if (id !== null) {
 
         const habitacion =
             habitaciones.find(
-                h => Number(h.id) === Number(id)
+                h =>
+                    Number(h.id) ===
+                    Number(id)
             );
+
 
         if (!habitacion) {
             return;
         }
 
+
         document.getElementById(
             "tituloModalHabitacion"
-        ).textContent = "Editar habitación";
+        ).textContent =
+            "Editar habitación";
+
 
         document.getElementById(
             "habitacionEditandoId"
-        ).value = habitacion.id;
+        ).value =
+            habitacion.id;
+
 
         document.getElementById(
             "numeroHabitacion"
-        ).value = habitacion.numero;
+        ).value =
+            habitacion.numero;
+
 
         document.getElementById(
             "tipoHabitacion"
-        ).value = habitacion.tipo;
+        ).value =
+            habitacion.tipo;
+
 
         document.getElementById(
             "precioHabitacion"
-        ).value = habitacion.precio;
+        ).value =
+            habitacion.precio;
+
+
+        document.getElementById(
+            "precioHoraHabitacion"
+        ).value =
+            habitacion.precioHora;
+
 
         document.getElementById(
             "estadoHabitacion"
         ).value =
-            habitacion.estado === "OCUPADA"
+            habitacion.estado ===
+            "OCUPADA"
                 ? "DISPONIBLE"
                 : habitacion.estado;
     }
 
-    abrirModal("modalHabitacion");
-}
 
+    abrirModal(
+        "modalHabitacion"
+    );
+}
+/* =========================================================
+   GUARDAR HABITACIÓN
+========================================================= */
 
 function guardarHabitacion() {
 
@@ -790,82 +843,118 @@ function guardarHabitacion() {
             ).value
         );
 
+    const precioHora =
+        Number(
+            document.getElementById(
+                "precioHoraHabitacion"
+            ).value
+        );
+
     const estado =
         document.getElementById(
             "estadoHabitacion"
         ).value;
 
+
     if (!numero) {
 
-        notificar(
+        return notificar(
             "Ingresa el número de habitación."
         );
-
-        return;
     }
+
 
     if (precio <= 0) {
 
-        notificar(
-            "Ingresa un precio válido."
+        return notificar(
+            "Ingresa un precio por día válido."
         );
-
-        return;
     }
 
-    const duplicada =
-        habitaciones.some(h =>
-            h.numero.toLowerCase() ===
-                numero.toLowerCase()
-            &&
-            Number(h.id) !== id
+
+    if (precioHora <= 0) {
+
+        return notificar(
+            "Ingresa un precio por hora válido."
         );
+    }
+
+
+    const duplicada =
+        habitaciones.some(
+            h =>
+                String(h.numero).toLowerCase() ===
+                    numero.toLowerCase()
+                &&
+                Number(h.id) !== id
+        );
+
 
     if (duplicada) {
 
-        notificar(
+        return notificar(
             "Ya existe una habitación con ese número."
         );
-
-        return;
     }
+
 
     if (id) {
 
         const habitacion =
             habitaciones.find(
-                h => Number(h.id) === id
+                h =>
+                    Number(h.id) === id
             );
 
+
         if (!habitacion) {
+
             return;
         }
 
-        const estadoAnterior =
-            habitacion.estado;
 
         const numeroAnterior =
             habitacion.numero;
 
+
         const estaOcupada =
-            reservas.some(r =>
-                Number(r.habitacionId) === id &&
-                r.estado === "OCUPADA"
+            reservas.some(
+                r =>
+                    Number(
+                        r.habitacionId
+                    ) === id
+                    &&
+                    r.estado ===
+                    "OCUPADA"
             );
 
-        habitacion.numero = numero;
-        habitacion.tipo = tipo;
-        habitacion.precio = precio;
+
+        habitacion.numero =
+            numero;
+
+        habitacion.tipo =
+            tipo;
+
+        habitacion.precio =
+            precio;
+
+        habitacion.precioHora =
+            precioHora;
+
 
         if (!estaOcupada) {
-            habitacion.estado = estado;
+
+            habitacion.estado =
+                estado;
         }
+
 
         registrarMovimiento(
             "HABITACIÓN EDITADA",
             numero,
-            `Habitación ${numeroAnterior} actualizada. Estado anterior: ${estadoAnterior}.`
+            `Habitación ${numeroAnterior}. Día: ${dinero(precio)}. Hora: ${dinero(precioHora)}.`
         );
+
 
         notificar(
             "Habitación actualizada."
@@ -873,9 +962,12 @@ function guardarHabitacion() {
 
     } else {
 
-        const nueva = {
+        habitaciones.push({
 
-            id: generarId(habitaciones),
+            id:
+                generarId(
+                    habitaciones
+                ),
 
             numero,
 
@@ -883,78 +975,107 @@ function guardarHabitacion() {
 
             precio,
 
-            estado
-        };
+            precioHora,
 
-        habitaciones.push(nueva);
+            estado
+        });
+
 
         registrarMovimiento(
             "HABITACIÓN CREADA",
             numero,
-            `${tipo} - ${dinero(precio)} por noche.`
+            `${tipo} - ${dinero(precio)} por día - ${dinero(precioHora)} por hora.`
         );
+
 
         notificar(
             "Habitación creada."
         );
     }
 
+
     guardarDatos();
 
-    cerrarModal("modalHabitacion");
+    cerrarModal(
+        "modalHabitacion"
+    );
 
     renderTodo();
 }
 
 
+/* =========================================================
+   ELIMINAR HABITACIÓN
+========================================================= */
+
 function eliminarHabitacion(id) {
 
     const habitacion =
         habitaciones.find(
-            h => Number(h.id) === Number(id)
+            h =>
+                Number(h.id) ===
+                Number(id)
         );
+
 
     if (!habitacion) {
-        return;
-    }
-
-    const tieneReserva =
-        reservas.some(r =>
-            Number(r.habitacionId) ===
-                Number(id)
-            &&
-            r.estado !== "CANCELADA" &&
-            r.estado !== "FINALIZADA"
-        );
-
-    if (tieneReserva) {
-
-        alert(
-            "No puedes eliminar esta habitación porque tiene una reserva activa o futura."
-        );
 
         return;
     }
+
+
+    const tieneReservaActiva =
+        reservas.some(
+            r =>
+                Number(
+                    r.habitacionId
+                ) ===
+                    Number(id)
+                &&
+                (
+                    r.estado ===
+                    "OCUPADA"
+                    ||
+                    r.estado ===
+                    "RESERVADA"
+                )
+        );
+
+
+    if (tieneReservaActiva) {
+
+        return notificar(
+            "No puedes eliminar una habitación con una reserva activa."
+        );
+    }
+
 
     const confirmar =
-        confirm(
+        window.confirm(
             `¿Eliminar la habitación ${habitacion.numero}?`
         );
 
+
     if (!confirmar) {
+
         return;
     }
 
+
     habitaciones =
         habitaciones.filter(
-            h => Number(h.id) !== Number(id)
+            h =>
+                Number(h.id) !==
+                Number(id)
         );
+
 
     registrarMovimiento(
         "HABITACIÓN ELIMINADA",
         habitacion.numero,
-        `${habitacion.tipo} eliminada del sistema.`
+        `${habitacion.tipo}`
     );
+
 
     guardarDatos();
 
@@ -966,244 +1087,560 @@ function eliminarHabitacion(id) {
 }
 
 
-function filtrarHabitaciones(
-    estado,
-    boton
+/* =========================================================
+   CAMBIAR ESTADO HABITACIÓN
+========================================================= */
+
+function cambiarEstadoHabitacion(
+    id,
+    nuevoEstado
 ) {
 
-    filtroHabitacionActual = estado;
+    const habitacion =
+        habitaciones.find(
+            h =>
+                Number(h.id) ===
+                Number(id)
+        );
+
+
+    if (!habitacion) {
+
+        return;
+    }
+
+
+    const ocupada =
+        reservas.some(
+            r =>
+                Number(
+                    r.habitacionId
+                ) ===
+                    Number(id)
+                &&
+                r.estado ===
+                "OCUPADA"
+        );
+
+
+    if (ocupada) {
+
+        return notificar(
+            "La habitación está ocupada."
+        );
+    }
+
+
+    habitacion.estado =
+        nuevoEstado;
+
+
+    registrarMovimiento(
+        "ESTADO HABITACIÓN",
+        habitacion.numero,
+        `Nuevo estado: ${nuevoEstado}`
+    );
+
+
+    guardarDatos();
+
+    renderTodo();
+}
+
+
+/* =========================================================
+   FILTRO HABITACIONES
+========================================================= */
+
+function filtrarHabitaciones(
+    filtro
+) {
+
+    filtroHabitacionActual =
+        filtro || "TODAS";
+
 
     document
-        .querySelectorAll(".filtro")
-        .forEach(b => {
-            b.classList.remove("activo");
-        });
+        .querySelectorAll(
+            ".filtro-habitacion"
+        )
+        .forEach(
+            boton =>
+                boton.classList.remove(
+                    "activo"
+                )
+        );
 
-    if (boton) {
-        boton.classList.add("activo");
+
+    if (event?.currentTarget) {
+
+        event.currentTarget.classList.add(
+            "activo"
+        );
     }
+
 
     renderHabitaciones();
 }
 
 
-function existeReservaFuturaHabitacion(
-    habitacionId
+/* =========================================================
+   INFORMACIÓN DE ESTADÍA POR HORAS
+========================================================= */
+
+function obtenerTiempoRestante(
+    fechaHoraSalida
 ) {
 
-    const hoy = obtenerFechaHoy();
+    if (!fechaHoraSalida) {
 
-    return reservas.some(r =>
+        return "";
+    }
 
-        Number(r.habitacionId) ===
-            Number(habitacionId)
 
-        &&
+    const ahora =
+        Date.now();
 
-        r.estado === "RESERVADA"
 
-        &&
+    const fin =
+        new Date(
+            fechaHoraSalida
+        ).getTime();
 
-        r.entrada > hoy
-    );
+
+    let diferencia =
+        fin - ahora;
+
+
+    if (diferencia <= 0) {
+
+        return "TIEMPO TERMINADO";
+    }
+
+
+    const minutosTotales =
+        Math.ceil(
+            diferencia /
+            60000
+        );
+
+
+    const horas =
+        Math.floor(
+            minutosTotales / 60
+        );
+
+
+    const minutos =
+        minutosTotales % 60;
+
+
+    if (horas <= 0) {
+
+        return `${minutos} min`;
+    }
+
+
+    return `${horas} h ${minutos} min`;
 }
 
 
+/* =========================================================
+   CREAR TARJETA HABITACIÓN
+========================================================= */
+
 function crearTarjetaHabitacion(
-    habitacion,
-    mostrarEdicion = true
+    habitacion
 ) {
 
     const reservaOcupada =
-        reservas.find(r =>
-            Number(r.habitacionId) ===
-                Number(habitacion.id)
-            &&
-            r.estado === "OCUPADA"
+        reservas.find(
+            r =>
+                Number(
+                    r.habitacionId
+                ) ===
+                    Number(
+                        habitacion.id
+                    )
+                &&
+                r.estado ===
+                "OCUPADA"
         );
+
 
     const reservaFutura =
         reservas
-            .filter(r =>
-                Number(r.habitacionId) ===
-                    Number(habitacion.id)
-                &&
-                r.estado === "RESERVADA"
-                &&
-                r.entrada > obtenerFechaHoy()
+            .filter(
+                r =>
+                    Number(
+                        r.habitacionId
+                    ) ===
+                        Number(
+                            habitacion.id
+                        )
+                    &&
+                    r.estado ===
+                        "RESERVADA"
             )
             .sort(
                 (a, b) =>
-                    a.entrada.localeCompare(b.entrada)
+                    String(
+                        a.entrada
+                    ).localeCompare(
+                        String(
+                            b.entrada
+                        )
+                    )
             )[0];
 
-    let estadoTexto =
-        habitacion.estado;
 
-    let claseEstado =
-        `estado-${habitacion.estado.toLowerCase()}`;
+    let informacionOcupacion =
+        "";
 
-    let informacion = "";
-
-    if (
-        habitacion.estado === "DISPONIBLE" &&
-        reservaFutura
-    ) {
-
-        informacion = `
-            <div class="tipo-habitacion">
-                📅 Próxima reserva:
-                ${formatearFecha(reservaFutura.entrada)}
-            </div>
-        `;
-    }
 
     if (reservaOcupada) {
 
-        informacion = `
-            <div class="tipo-habitacion">
-                👤 ${escaparHTML(reservaOcupada.nombre)}
-            </div>
-        `;
-    }
+        if (
+            reservaOcupada.tipoEstadia ===
+            "HORAS"
+        ) {
 
-    let botones = "";
+            const tiempo =
+                obtenerTiempoRestante(
+                    reservaOcupada.fechaHoraSalida
+                );
 
-    if (mostrarEdicion) {
 
-        botones += `
-            <button
-                class="btn-editar"
-                onclick="abrirModalHabitacion(${habitacion.id})"
-            >
-                ✏️ Editar
-            </button>
-        `;
+            const terminado =
+                tiempo ===
+                "TIEMPO TERMINADO";
 
-        if (habitacion.estado !== "OCUPADA") {
 
-            botones += `
-                <button
-                    class="btn-eliminar"
-                    onclick="eliminarHabitacion(${habitacion.id})"
-                >
-                    🗑 Eliminar
-                </button>
+            informacionOcupacion = `
+                <div class="info-ocupacion">
+                    <strong>
+                        ${escaparHTML(
+                            reservaOcupada.nombre
+                        )}
+                    </strong>
+
+                    <span>
+                        ⏱️ POR HORAS
+                    </span>
+
+                    <span>
+                        Entrada:
+                        ${formatearHora(
+                            reservaOcupada.fechaHoraEntrada
+                        )}
+                    </span>
+
+                    <span>
+                        Termina:
+                        ${formatearHora(
+                            reservaOcupada.fechaHoraSalida
+                        )}
+                    </span>
+
+                    <span class="${
+                        terminado
+                            ? "tiempo-terminado"
+                            : ""
+                    }">
+                        ${
+                            terminado
+                                ? "🔴 TIEMPO TERMINADO"
+                                : `⏳ Faltan ${tiempo}`
+                        }
+                    </span>
+                </div>
+            `;
+
+        } else {
+
+            informacionOcupacion = `
+                <div class="info-ocupacion">
+                    <strong>
+                        ${escaparHTML(
+                            reservaOcupada.nombre
+                        )}
+                    </strong>
+
+                    <span>
+                        📅 POR DÍA
+                    </span>
+
+                    <span>
+                        Salida:
+                        ${formatearFecha(
+                            reservaOcupada.salida
+                        )}
+                    </span>
+                </div>
             `;
         }
-    }
 
-    if (habitacion.estado === "OCUPADA") {
+    } else if (reservaFutura) {
 
-        botones += `
-            <button
-                onclick="abrirCuentaPorHabitacion(${habitacion.id})"
-            >
-                💳 Cuenta
-            </button>
+        informacionOcupacion = `
+            <div class="reserva-proxima">
+                <span>
+                    Próxima reserva
+                </span>
 
-            <button
-                onclick="abrirModalConsumo(${habitacion.id})"
-            >
-                🛒 Consumo
-            </button>
+                <strong>
+                    ${escaparHTML(
+                        reservaFutura.nombre
+                    )}
+                </strong>
+
+                <small>
+                    ${formatearFecha(
+                        reservaFutura.entrada
+                    )}
+                </small>
+            </div>
         `;
     }
 
-    if (habitacion.estado === "LIMPIEZA") {
 
-        botones += `
-            <button
-                onclick="marcarHabitacionLimpia(${habitacion.id})"
-            >
-                ✓ Habitación limpia
-            </button>
-        `;
-    }
+    const precioHora =
+        Number(
+            habitacion.precioHora || 0
+        );
 
-    return `
 
-        <div class="habitacion-card">
+    const card =
+        document.createElement(
+            "div"
+        );
 
-            <div class="numero-habitacion">
-                ${escaparHTML(habitacion.numero)}
+
+    card.className =
+        `habitacion-card estado-${String(
+            habitacion.estado
+        ).toLowerCase()}`;
+
+
+    card.innerHTML = `
+        <div class="habitacion-card-superior">
+
+            <div>
+                <span class="habitacion-etiqueta">
+                    HABITACIÓN
+                </span>
+
+                <h3>
+                    ${escaparHTML(
+                        habitacion.numero
+                    )}
+                </h3>
             </div>
 
-            <div class="tipo-habitacion">
-                ${escaparHTML(habitacion.tipo)}
-            </div>
-
-            <span class="estado ${claseEstado}">
-                ${estadoTexto}
+            <span class="estado-habitacion">
+                ${escaparHTML(
+                    habitacion.estado
+                )}
             </span>
 
-            ${informacion}
+        </div>
 
-            <div class="precio-habitacion">
-                ${dinero(habitacion.precio)}
-                / noche
+        <div class="habitacion-tipo">
+            ${escaparHTML(
+                habitacion.tipo
+            )}
+        </div>
+
+        <div class="precio-habitacion">
+
+            <div>
+                <strong>
+                    ${dinero(
+                        habitacion.precio
+                    )}
+                </strong>
+                <span>
+                    / día
+                </span>
             </div>
 
-            <div class="acciones-habitacion">
-                ${botones}
+            <div>
+                <strong>
+                    ${dinero(
+                        precioHora
+                    )}
+                </strong>
+                <span>
+                    / hora
+                </span>
             </div>
 
         </div>
+
+        ${informacionOcupacion}
+
+        <div class="acciones-habitacion">
+
+            <button
+                class="btn-secundario"
+                onclick="abrirModalHabitacion(${habitacion.id})"
+            >
+                Editar
+            </button>
+
+            ${
+                habitacion.estado ===
+                "DISPONIBLE"
+                    ?
+                    `
+                    <button
+                        class="btn-principal"
+                        onclick="abrirCheckInDirecto(${habitacion.id})"
+                    >
+                        Check-in
+                    </button>
+                    `
+                    :
+                    ""
+            }
+
+            ${
+                habitacion.estado ===
+                "LIMPIEZA"
+                    ?
+                    `
+                    <button
+                        class="btn-principal"
+                        onclick="cambiarEstadoHabitacion(${habitacion.id}, 'DISPONIBLE')"
+                    >
+                        Habitación lista
+                    </button>
+                    `
+                    :
+                    ""
+            }
+
+            ${
+                reservaOcupada
+                    ?
+                    `
+                    <button
+                        class="btn-secundario"
+                        onclick="abrirCuenta(${reservaOcupada.id})"
+                    >
+                        Cuenta
+                    </button>
+                    `
+                    :
+                    ""
+            }
+
+            ${
+                !reservaOcupada
+                    ?
+                    `
+                    <button
+                        class="btn-peligro"
+                        onclick="eliminarHabitacion(${habitacion.id})"
+                    >
+                        Eliminar
+                    </button>
+                    `
+                    :
+                    ""
+            }
+
+        </div>
     `;
+
+
+    return card;
 }
 
+
+/* =========================================================
+   RENDER HABITACIONES
+========================================================= */
 
 function renderHabitaciones() {
 
     const contenedor =
         document.getElementById(
-            "listaHabitaciones"
+            "habitacionesGrid"
         );
 
+
     if (!contenedor) {
+
         return;
     }
 
+
+    contenedor.innerHTML = "";
+
+
     let lista =
-        [...habitaciones]
-        .sort(
-            (a, b) =>
-                String(a.numero)
-                    .localeCompare(
-                        String(b.numero),
-                        undefined,
-                        { numeric: true }
-                    )
-        );
+        [...habitaciones];
+
 
     if (
-        filtroHabitacionActual !== "TODAS"
+        filtroHabitacionActual !==
+        "TODAS"
     ) {
 
-        lista = lista.filter(
-            h =>
-                h.estado ===
-                filtroHabitacionActual
-        );
+        lista =
+            lista.filter(
+                h =>
+                    h.estado ===
+                    filtroHabitacionActual
+            );
     }
+
+
+    lista.sort(
+        (a, b) =>
+            String(
+                a.numero
+            ).localeCompare(
+                String(
+                    b.numero
+                ),
+                undefined,
+                {
+                    numeric: true
+                }
+            )
+    );
+
 
     if (!lista.length) {
 
         contenedor.innerHTML = `
-            <div class="panel">
-                No hay habitaciones.
+            <div class="sin-datos">
+                No hay habitaciones para mostrar.
             </div>
         `;
 
         return;
     }
 
-    contenedor.innerHTML =
-        lista.map(
-            h => crearTarjetaHabitacion(h, true)
-        ).join("");
+
+    lista.forEach(
+        habitacion => {
+
+            contenedor.appendChild(
+                crearTarjetaHabitacion(
+                    habitacion
+                )
+            );
+        }
+    );
 }
 
+
+/* =========================================================
+   HABITACIONES EN INICIO
+========================================================= */
 
 function renderHabitacionesInicio() {
 
@@ -1212,1172 +1649,573 @@ function renderHabitacionesInicio() {
             "habitacionesInicio"
         );
 
+
     if (!contenedor) {
-        return;
-    }
-
-    contenedor.innerHTML =
-        [...habitaciones]
-            .sort(
-                (a, b) =>
-                    String(a.numero)
-                        .localeCompare(
-                            String(b.numero),
-                            undefined,
-                            { numeric: true }
-                        )
-            )
-            .map(
-                h => crearTarjetaHabitacion(h, false)
-            )
-            .join("");
-}
-
-
-function marcarHabitacionLimpia(id) {
-
-    const habitacion =
-        habitaciones.find(
-            h => Number(h.id) === Number(id)
-        );
-
-    if (!habitacion) {
-        return;
-    }
-
-    habitacion.estado =
-        "DISPONIBLE";
-
-    registrarMovimiento(
-        "HABITACIÓN LIMPIA",
-        habitacion.numero,
-        "La habitación volvió a estar disponible."
-    );
-
-    guardarDatos();
-
-    renderTodo();
-
-    notificar(
-        "Habitación disponible."
-    );
-}
-
-
-/* =========================================================
-   RESERVAS
-========================================================= */
-
-function abrirModalReserva(id = null) {
-
-    document.getElementById(
-        "reservaEditandoId"
-    ).value = "";
-
-    document.getElementById(
-        "nombreReserva"
-    ).value = "";
-
-    document.getElementById(
-        "dniReserva"
-    ).value = "";
-
-    document.getElementById(
-        "telefonoReserva"
-    ).value = "";
-
-    document.getElementById(
-        "entradaReserva"
-    ).value = obtenerFechaHoy();
-
-    document.getElementById(
-        "salidaReserva"
-    ).value =
-        sumarDias(obtenerFechaHoy(), 1);
-
-    document.getElementById(
-        "totalReserva"
-    ).textContent = dinero(0);
-
-    document.getElementById(
-        "tituloModalReserva"
-    ).textContent = "Nueva reserva";
-
-    if (id !== null) {
-
-        const reserva =
-            reservas.find(
-                r => Number(r.id) === Number(id)
-            );
-
-        if (!reserva) {
-            return;
-        }
-
-        if (
-            reserva.estado === "FINALIZADA" ||
-            reserva.estado === "CANCELADA"
-        ) {
-
-            alert(
-                "Esta reserva ya no puede editarse."
-            );
-
-            return;
-        }
-
-        document.getElementById(
-            "tituloModalReserva"
-        ).textContent = "Editar reserva";
-
-        document.getElementById(
-            "reservaEditandoId"
-        ).value = reserva.id;
-
-        document.getElementById(
-            "nombreReserva"
-        ).value = reserva.nombre;
-
-        document.getElementById(
-            "dniReserva"
-        ).value = reserva.dni;
-
-        document.getElementById(
-            "telefonoReserva"
-        ).value =
-            reserva.telefono || "";
-
-        document.getElementById(
-            "entradaReserva"
-        ).value = reserva.entrada;
-
-        document.getElementById(
-            "salidaReserva"
-        ).value = reserva.salida;
-    }
-
-    actualizarHabitacionesReserva();
-
-    if (id !== null) {
-
-        const reserva =
-            reservas.find(
-                r => Number(r.id) === Number(id)
-            );
-
-        document.getElementById(
-            "habitacionReserva"
-        ).value =
-            reserva.habitacionId;
-    }
-
-    calcularReserva();
-
-    abrirModal("modalReserva");
-}
-
-
-function actualizarHabitacionesReserva() {
-
-    const select =
-        document.getElementById(
-            "habitacionReserva"
-        );
-
-    if (!select) {
-        return;
-    }
-
-    const entrada =
-        document.getElementById(
-            "entradaReserva"
-        ).value;
-
-    const salida =
-        document.getElementById(
-            "salidaReserva"
-        ).value;
-
-    const editandoId =
-        Number(
-            document.getElementById(
-                "reservaEditandoId"
-            ).value
-        ) || null;
-
-    const valorAnterior =
-        Number(select.value);
-
-    let disponibles =
-        habitaciones.filter(h => {
-
-            if (
-                h.estado === "MANTENIMIENTO"
-            ) {
-                return false;
-            }
-
-            return habitacionDisponibleParaFechas(
-                h.id,
-                entrada,
-                salida,
-                editandoId
-            );
-        });
-
-    select.innerHTML =
-        `<option value="">
-            Seleccionar habitación
-        </option>`
-
-        +
-
-        disponibles.map(h => `
-
-            <option value="${h.id}">
-                Hab. ${escaparHTML(h.numero)}
-                - ${escaparHTML(h.tipo)}
-                - ${dinero(h.precio)}
-            </option>
-
-        `).join("");
-
-    if (
-        disponibles.some(
-            h =>
-                Number(h.id) ===
-                valorAnterior
-        )
-    ) {
-        select.value = valorAnterior;
-    }
-
-    calcularReserva();
-}
-
-
-function calcularReserva() {
-
-    const habitacionId =
-        Number(
-            document.getElementById(
-                "habitacionReserva"
-            )?.value
-        );
-
-    const entrada =
-        document.getElementById(
-            "entradaReserva"
-        )?.value;
-
-    const salida =
-        document.getElementById(
-            "salidaReserva"
-        )?.value;
-
-    const totalElemento =
-        document.getElementById(
-            "totalReserva"
-        );
-
-    if (!totalElemento) {
-        return;
-    }
-
-    const habitacion =
-        habitaciones.find(
-            h =>
-                Number(h.id) ===
-                habitacionId
-        );
-
-    const noches =
-        calcularNoches(
-            entrada,
-            salida
-        );
-
-    if (
-        !habitacion ||
-        noches <= 0
-    ) {
-
-        totalElemento.textContent =
-            dinero(0);
 
         return;
     }
 
-    const total =
-        noches * habitacion.precio;
 
-    totalElemento.textContent =
-        dinero(total);
-}
+    contenedor.innerHTML = "";
 
 
-function guardarReserva() {
-
-    const editandoId =
-        Number(
-            document.getElementById(
-                "reservaEditandoId"
-            ).value
-        ) || null;
-
-    const nombre =
-        document.getElementById(
-            "nombreReserva"
-        ).value.trim();
-
-    const dni =
-        document.getElementById(
-            "dniReserva"
-        ).value.trim();
-
-    const telefono =
-        document.getElementById(
-            "telefonoReserva"
-        ).value.trim();
-
-    const habitacionId =
-        Number(
-            document.getElementById(
-                "habitacionReserva"
-            ).value
-        );
-
-    const entrada =
-        document.getElementById(
-            "entradaReserva"
-        ).value;
-
-    const salida =
-        document.getElementById(
-            "salidaReserva"
-        ).value;
-
-    if (
-        !nombre ||
-        !dni ||
-        !habitacionId ||
-        !entrada ||
-        !salida
-    ) {
-
-        notificar(
-            "Completa los datos obligatorios."
-        );
-
-        return;
-    }
-
-    if (dni.length !== 8) {
-
-        notificar(
-            "El DNI debe tener 8 dígitos."
-        );
-
-        return;
-    }
-
-    const noches =
-        calcularNoches(
-            entrada,
-            salida
-        );
-
-    if (noches <= 0) {
-
-        notificar(
-            "La fecha de salida debe ser posterior a la entrada."
-        );
-
-        return;
-    }
-
-    if (
-        !habitacionDisponibleParaFechas(
-            habitacionId,
-            entrada,
-            salida,
-            editandoId
-        )
-    ) {
-
-        alert(
-            "La habitación ya tiene una reserva que se cruza con esas fechas."
-        );
-
-        actualizarHabitacionesReserva();
-
-        return;
-    }
-
-    const habitacion =
-        habitaciones.find(
-            h =>
-                Number(h.id) ===
-                habitacionId
-        );
-
-    if (!habitacion) {
-        return;
-    }
-
-    const total =
-        noches * habitacion.precio;
-
-    if (editandoId) {
-
-        const reserva =
-            reservas.find(
-                r =>
-                    Number(r.id) ===
-                    editandoId
-            );
-
-        if (!reserva) {
-            return;
-        }
-
-        const habitacionAnterior =
-            habitaciones.find(
-                h =>
-                    Number(h.id) ===
-                    Number(reserva.habitacionId)
-            );
-
-        reserva.nombre = nombre;
-        reserva.dni = dni;
-        reserva.telefono = telefono;
-        reserva.habitacionId =
-            habitacionId;
-        reserva.entrada = entrada;
-        reserva.salida = salida;
-        reserva.total = total;
-
-        if (
-            reserva.estado !== "OCUPADA"
-        ) {
-            reserva.estado =
-                entrada > obtenerFechaHoy()
-                    ? "RESERVADA"
-                    : "RESERVADA";
-        }
-
-        registrarMovimiento(
-            "RESERVA EDITADA",
-            habitacion.numero,
-            `${nombre}. Habitación anterior: ${
-                habitacionAnterior?.numero || "-"
-            }. ${formatearFecha(entrada)} al ${formatearFecha(salida)}.`
-        );
-
-        notificar(
-            "Reserva actualizada."
-        );
-
-    } else {
-
-        const nuevaReserva = {
-
-            id: generarId(reservas),
-
-            nombre,
-
-            dni,
-
-            telefono,
-
-            habitacionId,
-
-            entrada,
-
-            salida,
-
-            total,
-
-            estado: "RESERVADA",
-
-            creadoEn:
-                new Date().toISOString()
-        };
-
-        reservas.push(
-            nuevaReserva
-        );
-
-        registrarMovimiento(
-            "RESERVA CREADA",
-            habitacion.numero,
-            `${nombre} - ${formatearFecha(entrada)} al ${formatearFecha(salida)} - ${dinero(total)}.`
-        );
-
-        notificar(
-            "Reserva registrada."
-        );
-    }
-
-    guardarDatos();
-
-    actualizarEstadosAutomaticos();
-
-    cerrarModal("modalReserva");
-
-    renderTodo();
-}
-
-
-function renderReservas() {
-
-    const tabla =
-        document.getElementById(
-            "tablaReservas"
-        );
-
-    if (!tabla) {
-        return;
-    }
-
-    const busqueda =
-        (
-            document.getElementById(
-                "buscarReserva"
-            )?.value || ""
-        )
-        .trim()
-        .toLowerCase();
-
-    let lista =
-        [...reservas]
+    habitaciones
+        .slice()
         .sort(
             (a, b) =>
-                b.id - a.id
-        );
-
-    if (busqueda) {
-
-        lista = lista.filter(r => {
-
-            const habitacion =
-                habitaciones.find(
-                    h =>
-                        Number(h.id) ===
-                        Number(r.habitacionId)
-                );
-
-            return (
-                r.nombre
-                    .toLowerCase()
-                    .includes(busqueda)
-
-                ||
-
-                String(r.dni)
-                    .toLowerCase()
-                    .includes(busqueda)
-
-                ||
-
                 String(
-                    habitacion?.numero || ""
+                    a.numero
+                ).localeCompare(
+                    String(
+                        b.numero
+                    ),
+                    undefined,
+                    {
+                        numeric: true
+                    }
                 )
-                    .toLowerCase()
-                    .includes(busqueda)
-            );
-        });
-    }
+        )
+        .forEach(
+            habitacion => {
 
-    if (!lista.length) {
-
-        tabla.innerHTML = `
-            <tr>
-                <td colspan="9">
-                    No hay reservas.
-                </td>
-            </tr>
-        `;
-
-        return;
-    }
-
-    tabla.innerHTML =
-        lista.map(reserva => {
-
-            const habitacion =
-                habitaciones.find(
-                    h =>
-                        Number(h.id) ===
-                        Number(reserva.habitacionId)
+                contenedor.appendChild(
+                    crearTarjetaHabitacion(
+                        habitacion
+                    )
                 );
-
-            let clase =
-                "reserva-futura";
-
-            if (
-                reserva.estado === "OCUPADA"
-            ) {
-                clase = "reserva-activa";
             }
-
-            if (
-                reserva.estado === "FINALIZADA"
-            ) {
-                clase =
-                    "reserva-finalizada";
-            }
-
-            if (
-                reserva.estado === "CANCELADA"
-            ) {
-                clase =
-                    "reserva-cancelada";
-            }
-
-            let acciones = "";
-
-            if (
-                reserva.estado === "RESERVADA"
-            ) {
-
-                acciones += `
-                    <button
-                        class="tabla-boton verde"
-                        onclick="realizarCheckInReserva(${reserva.id})"
-                    >
-                        Check-in
-                    </button>
-
-                    <button
-                        class="tabla-boton azul"
-                        onclick="abrirModalReserva(${reserva.id})"
-                    >
-                        Editar
-                    </button>
-
-                    <button
-                        class="tabla-boton rojo"
-                        onclick="cancelarReserva(${reserva.id})"
-                    >
-                        Cancelar
-                    </button>
-                `;
-            }
-
-            if (
-                reserva.estado === "OCUPADA"
-            ) {
-
-                acciones += `
-                    <button
-                        class="tabla-boton azul"
-                        onclick="abrirCuenta(${reserva.id})"
-                    >
-                        Cuenta
-                    </button>
-
-                    <button
-                        class="tabla-boton verde"
-                        onclick="abrirModalConsumo(${reserva.habitacionId})"
-                    >
-                        Consumo
-                    </button>
-                `;
-            }
-
-            if (
-                reserva.estado === "CANCELADA" ||
-                reserva.estado === "FINALIZADA"
-            ) {
-
-                acciones += `
-                    <button
-                        class="tabla-boton rojo"
-                        onclick="eliminarReservaDefinitiva(${reserva.id})"
-                    >
-                        Eliminar
-                    </button>
-                `;
-            }
-
-            return `
-
-                <tr>
-
-                    <td>
-                        ${reserva.id}
-                    </td>
-
-                    <td>
-                        ${escaparHTML(reserva.nombre)}
-                    </td>
-
-                    <td>
-                        ${escaparHTML(reserva.dni)}
-                    </td>
-
-                    <td>
-                        ${escaparHTML(habitacion?.numero || "-")}
-                    </td>
-
-                    <td>
-                        ${formatearFecha(reserva.entrada)}
-                    </td>
-
-                    <td>
-                        ${formatearFecha(reserva.salida)}
-                    </td>
-
-                    <td>
-                        ${dinero(reserva.total)}
-                    </td>
-
-                    <td>
-                        <span class="${clase}">
-                            ${reserva.estado}
-                        </span>
-                    </td>
-
-                    <td>
-                        ${acciones}
-                    </td>
-
-                </tr>
-            `;
-
-        }).join("");
-}
-
-
-function renderReservasInicio() {
-
-    const tabla =
-        document.getElementById(
-            "reservasInicio"
         );
-
-    if (!tabla) {
-        return;
-    }
-
-    const lista =
-        [...reservas]
-            .sort(
-                (a, b) =>
-                    b.id - a.id
-            )
-            .slice(0, 6);
-
-    if (!lista.length) {
-
-        tabla.innerHTML = `
-            <tr>
-                <td colspan="5">
-                    No hay reservas registradas.
-                </td>
-            </tr>
-        `;
-
-        return;
-    }
-
-    tabla.innerHTML =
-        lista.map(reserva => {
-
-            const habitacion =
-                habitaciones.find(
-                    h =>
-                        Number(h.id) ===
-                        Number(reserva.habitacionId)
-                );
-
-            return `
-
-                <tr>
-
-                    <td>
-                        ${escaparHTML(reserva.nombre)}
-                    </td>
-
-                    <td>
-                        ${escaparHTML(habitacion?.numero || "-")}
-                    </td>
-
-                    <td>
-                        ${formatearFecha(reserva.entrada)}
-                    </td>
-
-                    <td>
-                        ${formatearFecha(reserva.salida)}
-                    </td>
-
-                    <td>
-                        ${reserva.estado}
-                    </td>
-
-                </tr>
-            `;
-
-        }).join("");
 }
 
 
 /* =========================================================
-   CHECK-IN DE RESERVA
+   RESUMEN GENERAL
 ========================================================= */
 
-function realizarCheckInReserva(id) {
+function renderResumen() {
 
-    const reserva =
-        reservas.find(
-            r => Number(r.id) === Number(id)
-        );
+    const totalHabitaciones =
+        habitaciones.length;
 
-    if (!reserva) {
-        return;
-    }
-
-    if (
-        reserva.estado !== "RESERVADA"
-    ) {
-        return;
-    }
-
-    const hoy =
-        obtenerFechaHoy();
-
-    if (hoy < reserva.entrada) {
-
-        const confirmar =
-            confirm(
-                `La reserva empieza el ${formatearFecha(reserva.entrada)}. ¿Deseas hacer el check-in antes de la fecha programada?`
-            );
-
-        if (!confirmar) {
-            return;
-        }
-    }
-
-    const habitacion =
-        habitaciones.find(
-            h =>
-                Number(h.id) ===
-                Number(reserva.habitacionId)
-        );
-
-    if (!habitacion) {
-        return;
-    }
-
-    if (
-        habitacion.estado === "MANTENIMIENTO" ||
-        habitacion.estado === "LIMPIEZA"
-    ) {
-
-        alert(
-            `La habitación está en estado ${habitacion.estado}.`
-        );
-
-        return;
-    }
-
-    const otraOcupacion =
-        reservas.some(r =>
-            Number(r.id) !==
-                Number(reserva.id)
-            &&
-            Number(r.habitacionId) ===
-                Number(reserva.habitacionId)
-            &&
-            r.estado === "OCUPADA"
-        );
-
-    if (otraOcupacion) {
-
-        alert(
-            "La habitación ya está ocupada."
-        );
-
-        return;
-    }
-
-    reserva.estado =
-        "OCUPADA";
-
-    habitacion.estado =
-        "OCUPADA";
-
-    registrarMovimiento(
-        "CHECK-IN",
-        habitacion.numero,
-        `${reserva.nombre} ingresó a la habitación.`
-    );
-
-    guardarDatos();
-
-    renderTodo();
-
-    notificar(
-        "Check-in realizado."
-    );
-}
-
-
-/* =========================================================
-   CANCELAR RESERVA
-========================================================= */
-
-function cancelarReserva(id) {
-
-    const reserva =
-        reservas.find(
-            r => Number(r.id) === Number(id)
-        );
-
-    if (!reserva) {
-        return;
-    }
-
-    if (
-        reserva.estado === "OCUPADA"
-    ) {
-
-        alert(
-            "No puedes cancelar una reserva con el huésped alojado. Debes realizar el check-out."
-        );
-
-        return;
-    }
-
-    const consumosReserva =
-        consumos.filter(
-            c =>
-                Number(c.reservaId) ===
-                Number(id)
-        );
-
-    const pagosReserva =
-        pagos.filter(
-            p =>
-                Number(p.reservaId) ===
-                Number(id)
-        );
-
-    if (
-        consumosReserva.length ||
-        pagosReserva.length
-    ) {
-
-        alert(
-            "Esta reserva tiene consumos o pagos registrados. No puede cancelarse directamente."
-        );
-
-        return;
-    }
-
-    const confirmar =
-        confirm(
-            `¿Cancelar la reserva de ${reserva.nombre}?`
-        );
-
-    if (!confirmar) {
-        return;
-    }
-
-    reserva.estado =
-        "CANCELADA";
-
-    const habitacion =
-        habitaciones.find(
-            h =>
-                Number(h.id) ===
-                Number(reserva.habitacionId)
-        );
-
-    registrarMovimiento(
-        "RESERVA CANCELADA",
-        habitacion?.numero || "-",
-        `Reserva de ${reserva.nombre} cancelada.`
-    );
-
-    guardarDatos();
-
-    actualizarEstadosAutomaticos();
-
-    renderTodo();
-
-    notificar(
-        "Reserva cancelada."
-    );
-}
-
-
-function eliminarReservaDefinitiva(id) {
-
-    const reserva =
-        reservas.find(
-            r => Number(r.id) === Number(id)
-        );
-
-    if (!reserva) {
-        return;
-    }
-
-    if (
-        reserva.estado !== "CANCELADA" &&
-        reserva.estado !== "FINALIZADA"
-    ) {
-
-        alert(
-            "Solo puedes eliminar reservas canceladas o finalizadas."
-        );
-
-        return;
-    }
-
-    const confirmar =
-        confirm(
-            "¿Eliminar definitivamente esta reserva y sus registros relacionados?"
-        );
-
-    if (!confirmar) {
-        return;
-    }
-
-    const consumosReserva =
-        consumos.filter(
-            c =>
-                Number(c.reservaId) ===
-                Number(id)
-        );
-
-    consumosReserva.forEach(consumo => {
-
-        const producto =
-            productos.find(
-                p =>
-                    Number(p.id) ===
-                    Number(consumo.productoId)
-            );
-
-        if (producto) {
-            producto.stock +=
-                Number(consumo.cantidad);
-        }
-    });
-
-    consumos =
-        consumos.filter(
-            c =>
-                Number(c.reservaId) !==
-                Number(id)
-        );
-
-    pagos =
-        pagos.filter(
-            p =>
-                Number(p.reservaId) !==
-                Number(id)
-        );
-
-    reservas =
-        reservas.filter(
-            r =>
-                Number(r.id) !==
-                Number(id)
-        );
-
-    const habitacion =
-        habitaciones.find(
-            h =>
-                Number(h.id) ===
-                Number(reserva.habitacionId)
-        );
-
-    registrarMovimiento(
-        "RESERVA ELIMINADA",
-        habitacion?.numero || "-",
-        `Se eliminó definitivamente la reserva de ${reserva.nombre}.`
-    );
-
-    guardarDatos();
-
-    renderTodo();
-
-    notificar(
-        "Reserva eliminada."
-    );
-}
-
-
-/* =========================================================
-   CHECK-IN DIRECTO
-========================================================= */
-
-function abrirCheckInDirecto() {
 
     const disponibles =
         habitaciones.filter(
             h =>
-                h.estado === "DISPONIBLE"
-        );
+                h.estado ===
+                "DISPONIBLE"
+        ).length;
 
-    if (!disponibles.length) {
 
-        alert(
-            "No hay habitaciones disponibles."
-        );
+    const ocupadas =
+        habitaciones.filter(
+            h =>
+                h.estado ===
+                "OCUPADA"
+        ).length;
 
-        return;
-    }
 
-    document.getElementById(
-        "checkinNombre"
-    ).value = "";
+    const limpieza =
+        habitaciones.filter(
+            h =>
+                h.estado ===
+                "LIMPIEZA"
+        ).length;
 
-    document.getElementById(
-        "checkinDni"
-    ).value = "";
 
-    document.getElementById(
-        "checkinTelefono"
-    ).value = "";
+    const mantenimiento =
+        habitaciones.filter(
+            h =>
+                h.estado ===
+                "MANTENIMIENTO"
+        ).length;
 
-    document.getElementById(
-        "checkinEntrada"
-    ).value = obtenerFechaHoy();
 
-    document.getElementById(
-        "checkinNoches"
-    ).value = 1;
+    const asignar =
+        (
+            id,
+            valor
+        ) => {
 
-    document.getElementById(
-        "checkinAdultos"
-    ).value = 1;
+            const elemento =
+                document.getElementById(
+                    id
+                );
 
-    document.getElementById(
-        "checkinNinos"
-    ).value = 0;
+            if (elemento) {
 
-    actualizarHabitacionesCheckIn();
+                elemento.textContent =
+                    valor;
+            }
+        };
 
-    calcularCheckIn();
 
-    abrirModal("modalCheckIn");
+    asignar(
+        "totalHabitaciones",
+        totalHabitaciones
+    );
+
+    asignar(
+        "habitacionesDisponibles",
+        disponibles
+    );
+
+    asignar(
+        "habitacionesOcupadas",
+        ocupadas
+    );
+
+    asignar(
+        "habitacionesLimpieza",
+        limpieza
+    );
+
+    asignar(
+        "habitacionesMantenimiento",
+        mantenimiento
+    );
 }
 
 
-function actualizarHabitacionesCheckIn() {
+/* =========================================================
+   DISPONIBILIDAD POR FECHAS
+========================================================= */
+
+function habitacionDisponibleParaFechas(
+    habitacionId,
+    entrada,
+    salida,
+    ignorarReservaId = null
+) {
+
+    const inicioNueva =
+        fechaLocalDesdeISO(
+            entrada
+        );
+
+
+    const finNueva =
+        fechaLocalDesdeISO(
+            salida
+        );
+
+
+    return !reservas.some(
+        reserva => {
+
+            if (
+                Number(
+                    reserva.habitacionId
+                ) !==
+                    Number(
+                        habitacionId
+                    )
+            ) {
+
+                return false;
+            }
+
+
+            if (
+                ignorarReservaId &&
+                Number(
+                    reserva.id
+                ) ===
+                    Number(
+                        ignorarReservaId
+                    )
+            ) {
+
+                return false;
+            }
+
+
+            if (
+                reserva.estado ===
+                    "CANCELADA"
+                ||
+                reserva.estado ===
+                    "FINALIZADA"
+            ) {
+
+                return false;
+            }
+
+
+            /*
+             * Una estadía POR HORAS que está ocupada
+             * también bloquea la habitación.
+             */
+
+            if (
+                reserva.tipoEstadia ===
+                    "HORAS"
+                &&
+                reserva.estado ===
+                    "OCUPADA"
+            ) {
+
+                return true;
+            }
+
+
+            if (
+                !reserva.entrada ||
+                !reserva.salida
+            ) {
+
+                return false;
+            }
+
+
+            const inicioExistente =
+                fechaLocalDesdeISO(
+                    reserva.entrada
+                );
+
+
+            const finExistente =
+                fechaLocalDesdeISO(
+                    reserva.salida
+                );
+
+
+            return (
+                inicioNueva <
+                    finExistente
+                &&
+                finNueva >
+                    inicioExistente
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   DISPONIBILIDAD POR HORAS
+========================================================= */
+
+function habitacionDisponibleParaHoras(
+    habitacionId,
+    inicio,
+    fin
+) {
+
+    return !reservas.some(
+        reserva => {
+
+            if (
+                Number(
+                    reserva.habitacionId
+                ) !==
+                    Number(
+                        habitacionId
+                    )
+            ) {
+
+                return false;
+            }
+
+
+            if (
+                reserva.estado ===
+                    "CANCELADA"
+                ||
+                reserva.estado ===
+                    "FINALIZADA"
+            ) {
+
+                return false;
+            }
+
+
+            if (
+                reserva.tipoEstadia ===
+                    "HORAS"
+                &&
+                reserva.fechaHoraEntrada
+                &&
+                reserva.fechaHoraSalida
+            ) {
+
+                const inicioExistente =
+                    new Date(
+                        reserva.fechaHoraEntrada
+                    );
+
+
+                const finExistente =
+                    new Date(
+                        reserva.fechaHoraSalida
+                    );
+
+
+                return (
+                    inicio <
+                        finExistente
+                    &&
+                    fin >
+                        inicioExistente
+                );
+            }
+
+
+            /*
+             * Para una reserva normal por día,
+             * se protege el día reservado.
+             */
+
+            if (
+                reserva.entrada &&
+                reserva.salida
+            ) {
+
+                const inicioExistente =
+                    new Date(
+                        `${reserva.entrada}T00:00:00`
+                    );
+
+
+                const finExistente =
+                    new Date(
+                        `${reserva.salida}T00:00:00`
+                    );
+
+
+                return (
+                    inicio <
+                        finExistente
+                    &&
+                    fin >
+                        inicioExistente
+                );
+            }
+
+
+            return false;
+        }
+    );
+}
+/* =========================================================
+   CHECK-IN DIRECTO
+   POR DÍA / POR HORAS
+========================================================= */
+
+function abrirCheckInDirecto(habitacionId = null) {
+
+    const nombre =
+        document.getElementById("checkinNombre");
+
+    const dni =
+        document.getElementById("checkinDni");
+
+    const telefono =
+        document.getElementById("checkinTelefono");
+
+    const entrada =
+        document.getElementById("checkinEntrada");
+
+    const noches =
+        document.getElementById("checkinNoches");
+
+    const adultos =
+        document.getElementById("checkinAdultos");
+
+    const ninos =
+        document.getElementById("checkinNinos");
+
+    const tipoEstadia =
+        document.getElementById("checkinTipoEstadia");
+
+    const horaEntrada =
+        document.getElementById("checkinHoraEntrada");
+
+    const horas =
+        document.getElementById("checkinHoras");
+
+    const precio =
+        document.getElementById("checkinPrecio");
+
+
+    if (nombre) nombre.value = "";
+    if (dni) dni.value = "";
+    if (telefono) telefono.value = "";
+
+    if (entrada) {
+        entrada.value = obtenerFechaHoy();
+    }
+
+    if (noches) {
+        noches.value = 1;
+    }
+
+    if (adultos) {
+        adultos.value = 1;
+    }
+
+    if (ninos) {
+        ninos.value = 0;
+    }
+
+    if (tipoEstadia) {
+        tipoEstadia.value = "DIA";
+    }
+
+    if (horaEntrada) {
+
+        const ahora =
+            new Date();
+
+        horaEntrada.value =
+            `${String(
+                ahora.getHours()
+            ).padStart(2, "0")}:${String(
+                ahora.getMinutes()
+            ).padStart(2, "0")}`;
+    }
+
+    if (horas) {
+        horas.value = 1;
+    }
+
+    if (precio) {
+        precio.value = "";
+    }
+
+
+    cambiarTipoEstadiaCheckIn();
+
+    actualizarHabitacionesCheckIn(
+        habitacionId
+    );
+
+
+    abrirModal(
+        "modalCheckIn"
+    );
+}
+
+
+/* =========================================================
+   CAMBIAR TIPO DE ESTADÍA
+========================================================= */
+
+function cambiarTipoEstadiaCheckIn() {
+
+    const tipo =
+        document.getElementById(
+            "checkinTipoEstadia"
+        )?.value || "DIA";
+
+
+    const grupoDias =
+        document.getElementById(
+            "grupoCheckinNoches"
+        );
+
+
+    const grupoHora =
+        document.getElementById(
+            "grupoCheckinHoraEntrada"
+        );
+
+
+    const grupoHoras =
+        document.getElementById(
+            "grupoCheckinHoras"
+        );
+
+
+    const grupoSalidaHora =
+        document.getElementById(
+            "grupoCheckinHoraSalida"
+        );
+
+
+    if (tipo === "HORAS") {
+
+        if (grupoDias) {
+            grupoDias.style.display =
+                "none";
+        }
+
+        if (grupoHora) {
+            grupoHora.style.display =
+                "";
+        }
+
+        if (grupoHoras) {
+            grupoHoras.style.display =
+                "";
+        }
+
+        if (grupoSalidaHora) {
+            grupoSalidaHora.style.display =
+                "";
+        }
+
+    } else {
+
+        if (grupoDias) {
+            grupoDias.style.display =
+                "";
+        }
+
+        if (grupoHora) {
+            grupoHora.style.display =
+                "none";
+        }
+
+        if (grupoHoras) {
+            grupoHoras.style.display =
+                "none";
+        }
+
+        if (grupoSalidaHora) {
+            grupoSalidaHora.style.display =
+                "none";
+        }
+    }
+
+
+    actualizarHabitacionesCheckIn();
+
+    cargarPrecioCheckIn();
+
+    calcularCheckIn();
+}
+
+
+/* =========================================================
+   ACTUALIZAR HABITACIONES DEL CHECK-IN
+========================================================= */
+
+function actualizarHabitacionesCheckIn(
+    habitacionSeleccionada = null
+) {
 
     const select =
         document.getElementById(
             "checkinHabitacion"
         );
 
+
     if (!select) {
         return;
     }
+
+
+    const seleccionAnterior =
+        habitacionSeleccionada ||
+        Number(select.value) ||
+        null;
+
+
+    const tipoEstadia =
+        document.getElementById(
+            "checkinTipoEstadia"
+        )?.value || "DIA";
+
 
     const entrada =
         document.getElementById(
@@ -2385,6 +2223,7 @@ function actualizarHabitacionesCheckIn() {
         )?.value ||
         obtenerFechaHoy();
 
+
     const noches =
         Math.max(
             1,
@@ -2395,84 +2234,169 @@ function actualizarHabitacionesCheckIn() {
             )
         );
 
-    const salida =
-        sumarDias(
-            entrada,
-            noches
-        );
 
-    const disponibles =
-        habitaciones.filter(h =>
+    const horaEntrada =
+        document.getElementById(
+            "checkinHoraEntrada"
+        )?.value ||
+        "12:00";
 
-            h.estado === "DISPONIBLE"
 
-            &&
-
-            habitacionDisponibleParaFechas(
-                h.id,
-                entrada,
-                salida
+    const cantidadHoras =
+        Math.max(
+            1,
+            Number(
+                document.getElementById(
+                    "checkinHoras"
+                )?.value || 1
             )
         );
 
-    select.innerHTML =
-        `<option value="">
+
+    select.innerHTML = `
+        <option value="">
             Seleccionar habitación
-        </option>`
+        </option>
+    `;
 
-        +
 
-        disponibles.map(h => `
+    habitaciones
+        .filter(
+            habitacion =>
+                habitacion.estado ===
+                "DISPONIBLE"
+        )
+        .sort(
+            (a, b) =>
+                String(
+                    a.numero
+                ).localeCompare(
+                    String(
+                        b.numero
+                    ),
+                    undefined,
+                    {
+                        numeric: true
+                    }
+                )
+        )
+        .forEach(
+            habitacion => {
 
-            <option value="${h.id}">
-                Hab. ${escaparHTML(h.numero)}
-                - ${escaparHTML(h.tipo)}
-                - ${dinero(h.precio)}
-            </option>
+                let disponible =
+                    true;
 
-        `).join("");
+
+                if (
+                    tipoEstadia ===
+                    "HORAS"
+                ) {
+
+                    const inicio =
+                        new Date(
+                            `${entrada}T${horaEntrada}:00`
+                        );
+
+
+                    const fin =
+                        new Date(
+                            inicio.getTime() +
+                            (
+                                cantidadHoras *
+                                60 *
+                                60 *
+                                1000
+                            )
+                        );
+
+
+                    disponible =
+                        habitacionDisponibleParaHoras(
+                            habitacion.id,
+                            inicio,
+                            fin
+                        );
+
+                } else {
+
+                    const salida =
+                        sumarDias(
+                            entrada,
+                            noches
+                        );
+
+
+                    disponible =
+                        habitacionDisponibleParaFechas(
+                            habitacion.id,
+                            entrada,
+                            salida
+                        );
+                }
+
+
+                if (!disponible) {
+                    return;
+                }
+
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+
+                option.value =
+                    habitacion.id;
+
+
+                if (
+                    tipoEstadia ===
+                    "HORAS"
+                ) {
+
+                    option.textContent =
+                        `Habitación ${habitacion.numero} - ${habitacion.tipo} - ${dinero(habitacion.precioHora)} / hora`;
+
+                } else {
+
+                    option.textContent =
+                        `Habitación ${habitacion.numero} - ${habitacion.tipo} - ${dinero(habitacion.precio)} / día`;
+                }
+
+
+                select.appendChild(
+                    option
+                );
+            }
+        );
+
+
+    if (
+        seleccionAnterior &&
+        [...select.options].some(
+            option =>
+                Number(option.value) ===
+                Number(
+                    seleccionAnterior
+                )
+        )
+    ) {
+
+        select.value =
+            seleccionAnterior;
+    }
+
+
+    cargarPrecioCheckIn();
+
+    calcularCheckIn();
 }
 
 
-function calcularCheckIn() {
-
-    actualizarHabitacionesCheckInSinRecursion();
-
-    const habitacionId =
-        Number(
-            document.getElementById(
-                "checkinHabitacion"
-            )?.value
-        );
-
-    const noches =
-        Math.max(
-            1,
-            Number(
-                document.getElementById(
-                    "checkinNoches"
-                )?.value || 1
-            )
-        );
-
-    const habitacion =
-        habitaciones.find(
-            h =>
-                Number(h.id) ===
-                habitacionId
-        );
-
-    const total =
-        habitacion
-            ? habitacion.precio * noches
-            : 0;
-
-    document.getElementById(
-        "checkinTotal"
-    ).textContent =
-        dinero(total);
-}
-
+/* =========================================================
+   ACTUALIZAR HABITACIONES SIN REINICIAR PRECIO
+========================================================= */
 
 function actualizarHabitacionesCheckInSinRecursion() {
 
@@ -2481,18 +2405,30 @@ function actualizarHabitacionesCheckInSinRecursion() {
             "checkinHabitacion"
         );
 
+
     if (!select) {
         return;
     }
 
-    const valorActual =
-        Number(select.value);
+
+    const seleccionAnterior =
+        Number(
+            select.value
+        ) || null;
+
+
+    const tipoEstadia =
+        document.getElementById(
+            "checkinTipoEstadia"
+        )?.value || "DIA";
+
 
     const entrada =
         document.getElementById(
             "checkinEntrada"
         )?.value ||
         obtenerFechaHoy();
+
 
     const noches =
         Math.max(
@@ -2504,136 +2440,175 @@ function actualizarHabitacionesCheckInSinRecursion() {
             )
         );
 
-    const salida =
-        sumarDias(
-            entrada,
-            noches
-        );
 
-    const disponibles =
-        habitaciones.filter(h =>
+    const horaEntrada =
+        document.getElementById(
+            "checkinHoraEntrada"
+        )?.value ||
+        "12:00";
 
-            h.estado === "DISPONIBLE"
 
-            &&
-
-            habitacionDisponibleParaFechas(
-                h.id,
-                entrada,
-                salida
+    const cantidadHoras =
+        Math.max(
+            1,
+            Number(
+                document.getElementById(
+                    "checkinHoras"
+                )?.value || 1
             )
         );
 
-    select.innerHTML =
-        `<option value="">
+
+    select.innerHTML = `
+        <option value="">
             Seleccionar habitación
-        </option>`
+        </option>
+    `;
 
-        +
 
-        disponibles.map(h => `
+    habitaciones.forEach(
+        habitacion => {
 
-            <option value="${h.id}">
-                Hab. ${escaparHTML(h.numero)}
-                - ${escaparHTML(h.tipo)}
-                - ${dinero(h.precio)}
-            </option>
+            if (
+                habitacion.estado !==
+                "DISPONIBLE"
+            ) {
+                return;
+            }
 
-        `).join("");
+
+            let disponible =
+                true;
+
+
+            if (
+                tipoEstadia ===
+                "HORAS"
+            ) {
+
+                const inicio =
+                    new Date(
+                        `${entrada}T${horaEntrada}:00`
+                    );
+
+
+                const fin =
+                    new Date(
+                        inicio.getTime() +
+                        (
+                            cantidadHoras *
+                            3600000
+                        )
+                    );
+
+
+                disponible =
+                    habitacionDisponibleParaHoras(
+                        habitacion.id,
+                        inicio,
+                        fin
+                    );
+
+            } else {
+
+                const salida =
+                    sumarDias(
+                        entrada,
+                        noches
+                    );
+
+
+                disponible =
+                    habitacionDisponibleParaFechas(
+                        habitacion.id,
+                        entrada,
+                        salida
+                    );
+            }
+
+
+            if (!disponible) {
+                return;
+            }
+
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+
+            option.value =
+                habitacion.id;
+
+
+            option.textContent =
+                tipoEstadia === "HORAS"
+                    ?
+                    `Habitación ${habitacion.numero} - ${dinero(habitacion.precioHora)} / hora`
+                    :
+                    `Habitación ${habitacion.numero} - ${dinero(habitacion.precio)} / día`;
+
+
+            select.appendChild(
+                option
+            );
+        }
+    );
+
 
     if (
-        disponibles.some(
-            h =>
-                Number(h.id) ===
-                valorActual
+        seleccionAnterior &&
+        [...select.options].some(
+            option =>
+                Number(option.value) ===
+                seleccionAnterior
         )
     ) {
-        select.value = valorActual;
+
+        select.value =
+            seleccionAnterior;
     }
+
+
+    calcularCheckIn();
 }
 
 
-function guardarCheckInDirecto() {
+/* =========================================================
+   CARGAR PRECIO DEL CHECK-IN
+========================================================= */
 
-    const nombre =
-        document.getElementById(
-            "checkinNombre"
-        ).value.trim();
-
-    const dni =
-        document.getElementById(
-            "checkinDni"
-        ).value.trim();
-
-    const telefono =
-        document.getElementById(
-            "checkinTelefono"
-        ).value.trim();
+function cargarPrecioCheckIn() {
 
     const habitacionId =
         Number(
             document.getElementById(
                 "checkinHabitacion"
-            ).value
+            )?.value
         );
 
-    const entrada =
+
+    const precioInput =
         document.getElementById(
-            "checkinEntrada"
-        ).value;
-
-    const noches =
-        Math.max(
-            1,
-            Number(
-                document.getElementById(
-                    "checkinNoches"
-                ).value
-            )
+            "checkinPrecio"
         );
 
-    if (
-        !nombre ||
-        !dni ||
-        !habitacionId
-    ) {
 
-        notificar(
-            "Completa los datos obligatorios."
-        );
+    if (!precioInput) {
+        return;
+    }
+
+
+    if (!habitacionId) {
+
+        precioInput.value = "";
+
+        calcularCheckIn();
 
         return;
     }
 
-    if (dni.length !== 8) {
-
-        notificar(
-            "El DNI debe tener 8 dígitos."
-        );
-
-        return;
-    }
-
-    const salida =
-        sumarDias(
-            entrada,
-            noches
-        );
-
-    if (
-        !habitacionDisponibleParaFechas(
-            habitacionId,
-            entrada,
-            salida
-        )
-    ) {
-
-        alert(
-            "La habitación tiene una reserva que se cruza con esas fechas."
-        );
-
-        return;
-    }
 
     const habitacion =
         habitaciones.find(
@@ -2642,16 +2617,463 @@ function guardarCheckInDirecto() {
                 habitacionId
         );
 
+
     if (!habitacion) {
         return;
     }
 
-    const total =
-        habitacion.precio * noches;
 
-    const reserva = {
+    const tipo =
+        document.getElementById(
+            "checkinTipoEstadia"
+        )?.value || "DIA";
 
-        id: generarId(reservas),
+
+    if (tipo === "HORAS") {
+
+        precioInput.value =
+            Number(
+                habitacion.precioHora || 0
+            ).toFixed(2);
+
+    } else {
+
+        precioInput.value =
+            Number(
+                habitacion.precio || 0
+            ).toFixed(2);
+    }
+
+
+    calcularCheckIn();
+}
+
+
+/* =========================================================
+   CALCULAR CHECK-IN
+========================================================= */
+
+function calcularCheckIn() {
+
+    const tipo =
+        document.getElementById(
+            "checkinTipoEstadia"
+        )?.value || "DIA";
+
+
+    const precio =
+        Number(
+            document.getElementById(
+                "checkinPrecio"
+            )?.value || 0
+        );
+
+
+    const totalElemento =
+        document.getElementById(
+            "checkinTotal"
+        );
+
+
+    const salidaElemento =
+        document.getElementById(
+            "checkinHoraSalida"
+        );
+
+
+    let total = 0;
+
+
+    if (
+        tipo ===
+        "HORAS"
+    ) {
+
+        const horas =
+            Math.max(
+                1,
+                Number(
+                    document.getElementById(
+                        "checkinHoras"
+                    )?.value || 1
+                )
+            );
+
+
+        total =
+            precio * horas;
+
+
+        const fecha =
+            document.getElementById(
+                "checkinEntrada"
+            )?.value;
+
+
+        const hora =
+            document.getElementById(
+                "checkinHoraEntrada"
+            )?.value;
+
+
+        if (
+            fecha &&
+            hora &&
+            salidaElemento
+        ) {
+
+            const inicio =
+                new Date(
+                    `${fecha}T${hora}:00`
+                );
+
+
+            const fin =
+                new Date(
+                    inicio.getTime() +
+                    (
+                        horas *
+                        3600000
+                    )
+                );
+
+
+            salidaElemento.value =
+                fin.toLocaleString(
+                    "es-PE",
+                    {
+                        dateStyle:
+                            "short",
+
+                        timeStyle:
+                            "short"
+                    }
+                );
+        }
+
+    } else {
+
+        const dias =
+            Math.max(
+                1,
+                Number(
+                    document.getElementById(
+                        "checkinNoches"
+                    )?.value || 1
+                )
+            );
+
+
+        total =
+            precio * dias;
+
+
+        if (salidaElemento) {
+
+            salidaElemento.value = "";
+        }
+    }
+
+
+    if (totalElemento) {
+
+        totalElemento.textContent =
+            dinero(total);
+    }
+
+
+    return total;
+}
+
+
+/* =========================================================
+   GUARDAR CHECK-IN DIRECTO
+========================================================= */
+
+function guardarCheckInDirecto() {
+
+    const nombre =
+        document.getElementById(
+            "checkinNombre"
+        )?.value.trim();
+
+
+    const dni =
+        document.getElementById(
+            "checkinDni"
+        )?.value.trim();
+
+
+    const telefono =
+        document.getElementById(
+            "checkinTelefono"
+        )?.value.trim();
+
+
+    const habitacionId =
+        Number(
+            document.getElementById(
+                "checkinHabitacion"
+            )?.value
+        );
+
+
+    const entrada =
+        document.getElementById(
+            "checkinEntrada"
+        )?.value;
+
+
+    const adultos =
+        Math.max(
+            1,
+            Number(
+                document.getElementById(
+                    "checkinAdultos"
+                )?.value || 1
+            )
+        );
+
+
+    const ninos =
+        Math.max(
+            0,
+            Number(
+                document.getElementById(
+                    "checkinNinos"
+                )?.value || 0
+            )
+        );
+
+
+    const tipoEstadia =
+        document.getElementById(
+            "checkinTipoEstadia"
+        )?.value || "DIA";
+
+
+    const precioAplicado =
+        Number(
+            document.getElementById(
+                "checkinPrecio"
+            )?.value || 0
+        );
+
+
+    if (!nombre) {
+
+        return notificar(
+            "Ingresa el nombre del huésped."
+        );
+    }
+
+
+    if (!habitacionId) {
+
+        return notificar(
+            "Selecciona una habitación."
+        );
+    }
+
+
+    if (!entrada) {
+
+        return notificar(
+            "Selecciona la fecha de entrada."
+        );
+    }
+
+
+    if (
+        precioAplicado <= 0
+    ) {
+
+        return notificar(
+            "Ingresa un precio válido."
+        );
+    }
+
+
+    const habitacion =
+        habitaciones.find(
+            h =>
+                Number(h.id) ===
+                habitacionId
+        );
+
+
+    if (!habitacion) {
+
+        return notificar(
+            "Habitación no encontrada."
+        );
+    }
+
+
+    let salida = entrada;
+
+    let total = 0;
+
+    let horas = 0;
+
+    let fechaHoraEntrada = null;
+
+    let fechaHoraSalida = null;
+
+    let noches = 1;
+
+
+    /* =============================================
+       CHECK-IN POR HORAS
+    ============================================= */
+
+    if (
+        tipoEstadia ===
+        "HORAS"
+    ) {
+
+        horas =
+            Math.max(
+                1,
+                Number(
+                    document.getElementById(
+                        "checkinHoras"
+                    )?.value || 1
+                )
+            );
+
+
+        const horaEntrada =
+            document.getElementById(
+                "checkinHoraEntrada"
+            )?.value;
+
+
+        if (!horaEntrada) {
+
+            return notificar(
+                "Selecciona la hora de entrada."
+            );
+        }
+
+
+        const inicio =
+            new Date(
+                `${entrada}T${horaEntrada}:00`
+            );
+
+
+        const fin =
+            new Date(
+                inicio.getTime() +
+                (
+                    horas *
+                    3600000
+                )
+            );
+
+
+        if (
+            isNaN(
+                inicio.getTime()
+            )
+        ) {
+
+            return notificar(
+                "La fecha u hora de entrada no es válida."
+            );
+        }
+
+
+        const disponible =
+            habitacionDisponibleParaHoras(
+                habitacionId,
+                inicio,
+                fin
+            );
+
+
+        if (!disponible) {
+
+            return notificar(
+                "La habitación no está disponible en ese horario."
+            );
+        }
+
+
+        fechaHoraEntrada =
+            inicio.toISOString();
+
+
+        fechaHoraSalida =
+            fin.toISOString();
+
+
+        salida =
+            fechaLocalYYYYMMDD(
+                fin
+            );
+
+
+        total =
+            precioAplicado *
+            horas;
+
+
+        noches = 0;
+
+    } else {
+
+        /* =============================================
+           CHECK-IN POR DÍA
+        ============================================= */
+
+        noches =
+            Math.max(
+                1,
+                Number(
+                    document.getElementById(
+                        "checkinNoches"
+                    )?.value || 1
+                )
+            );
+
+
+        salida =
+            sumarDias(
+                entrada,
+                noches
+            );
+
+
+        const disponible =
+            habitacionDisponibleParaFechas(
+                habitacionId,
+                entrada,
+                salida
+            );
+
+
+        if (!disponible) {
+
+            return notificar(
+                "La habitación no está disponible para esas fechas."
+            );
+        }
+
+
+        total =
+            precioAplicado *
+            noches;
+    }
+
+
+    const nuevaReserva = {
+
+        id:
+            generarId(
+                reservas
+            ),
 
         nombre,
 
@@ -2665,51 +3087,1662 @@ function guardarCheckInDirecto() {
 
         salida,
 
+        noches,
+
+        adultos,
+
+        ninos,
+
         total,
 
-        adultos:
-            Number(
-                document.getElementById(
-                    "checkinAdultos"
-                ).value || 1
-            ),
+        estado:
+            "OCUPADA",
 
-        ninos:
-            Number(
-                document.getElementById(
-                    "checkinNinos"
-                ).value || 0
-            ),
+        tipoEstadia,
 
-        estado: "OCUPADA",
+        horas,
+
+        precioAplicado,
+
+        fechaHoraEntrada,
+
+        fechaHoraSalida,
+
+        aviso15:
+            false,
+
+        avisoFin:
+            false,
 
         creadoEn:
             new Date().toISOString()
     };
 
-    reservas.push(reserva);
+
+    reservas.push(
+        nuevaReserva
+    );
+
 
     habitacion.estado =
         "OCUPADA";
 
-    registrarMovimiento(
-        "CHECK-IN DIRECTO",
-        habitacion.numero,
-        `${nombre} - ${noches} noche(s) - ${dinero(total)}.`
-    );
+
+    if (
+        tipoEstadia ===
+        "HORAS"
+    ) {
+
+        registrarMovimiento(
+            "CHECK-IN",
+            habitacion.numero,
+            `${nombre} - POR HORAS - ${horas} hora(s) - termina ${formatearHora(fechaHoraSalida)} - ${dinero(total)}`
+        );
+
+    } else {
+
+        registrarMovimiento(
+            "CHECK-IN",
+            habitacion.numero,
+            `${nombre} - POR DÍA - ${noches} día(s) - ${dinero(total)}`
+        );
+    }
+
 
     guardarDatos();
 
-    cerrarModal("modalCheckIn");
+
+    cerrarModal(
+        "modalCheckIn"
+    );
+
 
     renderTodo();
 
-    notificar(
-        "Check-in realizado."
+
+    if (
+        tipoEstadia ===
+        "HORAS"
+    ) {
+
+        notificar(
+            `Check-in registrado. Habitación ${habitacion.numero}. Termina a las ${formatearHora(fechaHoraSalida)}.`
+        );
+
+    } else {
+
+        notificar(
+            `Check-in registrado en la habitación ${habitacion.numero}.`
+        );
+    }
+}
+
+
+/* =========================================================
+   CONTROL AUTOMÁTICO DE ESTADÍAS POR HORAS
+========================================================= */
+
+function controlarEstadiasPorHora() {
+
+    const ahora =
+        Date.now();
+
+
+    let huboCambios =
+        false;
+
+
+    reservas.forEach(
+        reserva => {
+
+            if (
+                reserva.estado !==
+                    "OCUPADA"
+                ||
+                reserva.tipoEstadia !==
+                    "HORAS"
+                ||
+                !reserva.fechaHoraSalida
+            ) {
+
+                return;
+            }
+
+
+            const fin =
+                new Date(
+                    reserva.fechaHoraSalida
+                ).getTime();
+
+
+            const diferencia =
+                fin - ahora;
+
+
+            const minutos =
+                Math.ceil(
+                    diferencia /
+                    60000
+                );
+
+
+            const habitacion =
+                habitaciones.find(
+                    h =>
+                        Number(h.id) ===
+                        Number(
+                            reserva.habitacionId
+                        )
+                );
+
+
+            const numero =
+                habitacion
+                    ? habitacion.numero
+                    : "";
+
+
+            /*
+             * AVISO CUANDO FALTAN 15 MINUTOS
+             */
+
+            if (
+                diferencia > 0
+                &&
+                minutos <= 15
+                &&
+                !reserva.aviso15
+            ) {
+
+                reserva.aviso15 =
+                    true;
+
+
+                huboCambios =
+                    true;
+
+
+                notificar(
+                    `⚠️ Habitación ${numero}: faltan ${minutos} minutos para terminar.`
+                );
+            }
+
+
+            /*
+             * AVISO CUANDO TERMINA EL TIEMPO
+             */
+
+            if (
+                diferencia <= 0
+                &&
+                !reserva.avisoFin
+            ) {
+
+                reserva.avisoFin =
+                    true;
+
+
+                huboCambios =
+                    true;
+
+
+                notificar(
+                    `🔴 Habitación ${numero}: el tiempo terminó.`
+                );
+
+
+                registrarMovimiento(
+                    "TIEMPO TERMINADO",
+                    numero,
+                    `${reserva.nombre} terminó su tiempo de estadía por horas.`
+                );
+            }
+        }
+    );
+
+
+    if (huboCambios) {
+
+        guardarDatos();
+    }
+
+
+    /*
+     * Solo actualizamos las habitaciones.
+     * NO hacemos checkout automático.
+     */
+
+    renderHabitaciones();
+
+    renderHabitacionesInicio();
+}
+
+
+/* =========================================================
+   INICIAR RELOJ DE ESTADÍAS POR HORAS
+========================================================= */
+
+function iniciarControlEstadiasPorHora() {
+
+    controlarEstadiasPorHora();
+
+
+    setInterval(
+        () => {
+
+            controlarEstadiasPorHora();
+
+        },
+        60000
     );
 }
 
 
+/* =========================================================
+   ACTUALIZAR CÁLCULO AL CAMBIAR HORAS / DÍAS
+========================================================= */
+
+function cambioDatosCheckIn() {
+
+    actualizarHabitacionesCheckInSinRecursion();
+
+    calcularCheckIn();
+}
+
+
+/* =========================================================
+   CAMBIAR HABITACIÓN DEL CHECK-IN
+========================================================= */
+
+function cambiarHabitacionCheckIn() {
+
+    cargarPrecioCheckIn();
+
+    calcularCheckIn();
+}
+/* =========================================================
+   RESERVAS
+========================================================= */
+
+function abrirModalReserva(id = null) {
+
+    const idInput =
+        document.getElementById("reservaEditandoId");
+
+    const nombre =
+        document.getElementById("reservaNombre");
+
+    const dni =
+        document.getElementById("reservaDni");
+
+    const telefono =
+        document.getElementById("reservaTelefono");
+
+    const entrada =
+        document.getElementById("reservaEntrada");
+
+    const salida =
+        document.getElementById("reservaSalida");
+
+    const adultos =
+        document.getElementById("reservaAdultos");
+
+    const ninos =
+        document.getElementById("reservaNinos");
+
+    const titulo =
+        document.getElementById("tituloModalReserva");
+
+
+    if (idInput) idInput.value = "";
+    if (nombre) nombre.value = "";
+    if (dni) dni.value = "";
+    if (telefono) telefono.value = "";
+
+    if (entrada) {
+        entrada.value = obtenerFechaHoy();
+    }
+
+    if (salida) {
+        salida.value =
+            sumarDias(
+                obtenerFechaHoy(),
+                1
+            );
+    }
+
+    if (adultos) adultos.value = 1;
+    if (ninos) ninos.value = 0;
+
+    if (titulo) {
+        titulo.textContent =
+            "Nueva reserva";
+    }
+
+
+    if (id !== null) {
+
+        const reserva =
+            reservas.find(
+                r =>
+                    Number(r.id) ===
+                    Number(id)
+            );
+
+
+        if (!reserva) {
+
+            return notificar(
+                "Reserva no encontrada."
+            );
+        }
+
+
+        if (
+            reserva.estado ===
+            "OCUPADA"
+        ) {
+
+            return notificar(
+                "La reserva ya está ocupada. Edítala desde la cuenta de la habitación."
+            );
+        }
+
+
+        if (
+            reserva.estado ===
+            "FINALIZADA" ||
+            reserva.estado ===
+            "CANCELADA"
+        ) {
+
+            return notificar(
+                "Esta reserva ya no se puede editar."
+            );
+        }
+
+
+        if (idInput) {
+            idInput.value =
+                reserva.id;
+        }
+
+        if (nombre) {
+            nombre.value =
+                reserva.nombre || "";
+        }
+
+        if (dni) {
+            dni.value =
+                reserva.dni || "";
+        }
+
+        if (telefono) {
+            telefono.value =
+                reserva.telefono || "";
+        }
+
+        if (entrada) {
+            entrada.value =
+                reserva.entrada || "";
+        }
+
+        if (salida) {
+            salida.value =
+                reserva.salida || "";
+        }
+
+        if (adultos) {
+            adultos.value =
+                Number(
+                    reserva.adultos || 1
+                );
+        }
+
+        if (ninos) {
+            ninos.value =
+                Number(
+                    reserva.ninos || 0
+                );
+        }
+
+        if (titulo) {
+            titulo.textContent =
+                "Editar reserva";
+        }
+    }
+
+
+    actualizarHabitacionesReserva(
+        id
+    );
+
+    calcularReserva();
+
+    abrirModal(
+        "modalReserva"
+    );
+}
+
+
+/* =========================================================
+   ACTUALIZAR HABITACIONES EN RESERVA
+========================================================= */
+
+function actualizarHabitacionesReserva(
+    reservaId = null
+) {
+
+    const select =
+        document.getElementById(
+            "reservaHabitacion"
+        );
+
+
+    if (!select) {
+        return;
+    }
+
+
+    const idEditando =
+        Number(
+            document.getElementById(
+                "reservaEditandoId"
+            )?.value ||
+            reservaId ||
+            0
+        );
+
+
+    const reservaEditando =
+        reservas.find(
+            r =>
+                Number(r.id) ===
+                idEditando
+        );
+
+
+    const seleccionAnterior =
+        Number(
+            select.value
+        ) ||
+        Number(
+            reservaEditando?.habitacionId
+        ) ||
+        null;
+
+
+    const entrada =
+        document.getElementById(
+            "reservaEntrada"
+        )?.value;
+
+
+    const salida =
+        document.getElementById(
+            "reservaSalida"
+        )?.value;
+
+
+    select.innerHTML = `
+        <option value="">
+            Seleccionar habitación
+        </option>
+    `;
+
+
+    if (
+        !entrada ||
+        !salida
+    ) {
+
+        habitaciones.forEach(
+            habitacion => {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+                option.value =
+                    habitacion.id;
+
+                option.textContent =
+                    `Habitación ${habitacion.numero} - ${habitacion.tipo} - ${dinero(habitacion.precio)} / día`;
+
+                select.appendChild(
+                    option
+                );
+            }
+        );
+
+        return;
+    }
+
+
+    habitaciones
+        .slice()
+        .sort(
+            (a, b) =>
+                String(a.numero)
+                    .localeCompare(
+                        String(b.numero),
+                        undefined,
+                        {
+                            numeric: true
+                        }
+                    )
+        )
+        .forEach(
+            habitacion => {
+
+                const disponible =
+                    habitacionDisponibleParaFechas(
+                        habitacion.id,
+                        entrada,
+                        salida,
+                        idEditando || null
+                    );
+
+
+                if (!disponible) {
+                    return;
+                }
+
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+
+                option.value =
+                    habitacion.id;
+
+
+                option.textContent =
+                    `Habitación ${habitacion.numero} - ${habitacion.tipo} - ${dinero(habitacion.precio)} / día`;
+
+
+                select.appendChild(
+                    option
+                );
+            }
+        );
+
+
+    if (
+        seleccionAnterior &&
+        [...select.options].some(
+            option =>
+                Number(option.value) ===
+                Number(seleccionAnterior)
+        )
+    ) {
+
+        select.value =
+            seleccionAnterior;
+    }
+
+
+    calcularReserva();
+}
+
+
+/* =========================================================
+   CALCULAR RESERVA
+========================================================= */
+
+function calcularReserva() {
+
+    const habitacionId =
+        Number(
+            document.getElementById(
+                "reservaHabitacion"
+            )?.value
+        );
+
+
+    const entrada =
+        document.getElementById(
+            "reservaEntrada"
+        )?.value;
+
+
+    const salida =
+        document.getElementById(
+            "reservaSalida"
+        )?.value;
+
+
+    const nochesElemento =
+        document.getElementById(
+            "reservaNoches"
+        );
+
+
+    const totalElemento =
+        document.getElementById(
+            "reservaTotal"
+        );
+
+
+    let noches = 0;
+    let total = 0;
+
+
+    if (
+        entrada &&
+        salida
+    ) {
+
+        noches =
+            calcularNoches(
+                entrada,
+                salida
+            );
+    }
+
+
+    const habitacion =
+        habitaciones.find(
+            h =>
+                Number(h.id) ===
+                habitacionId
+        );
+
+
+    if (habitacion) {
+
+        total =
+            Number(
+                habitacion.precio || 0
+            ) *
+            noches;
+    }
+
+
+    if (nochesElemento) {
+
+        nochesElemento.textContent =
+            noches;
+    }
+
+
+    if (totalElemento) {
+
+        totalElemento.textContent =
+            dinero(total);
+    }
+
+
+    return {
+        noches,
+        total
+    };
+}
+
+
+/* =========================================================
+   GUARDAR RESERVA
+========================================================= */
+
+function guardarReserva() {
+
+    const id =
+        Number(
+            document.getElementById(
+                "reservaEditandoId"
+            )?.value
+        );
+
+
+    const nombre =
+        document.getElementById(
+            "reservaNombre"
+        )?.value.trim();
+
+
+    const dni =
+        document.getElementById(
+            "reservaDni"
+        )?.value.trim();
+
+
+    const telefono =
+        document.getElementById(
+            "reservaTelefono"
+        )?.value.trim();
+
+
+    const habitacionId =
+        Number(
+            document.getElementById(
+                "reservaHabitacion"
+            )?.value
+        );
+
+
+    const entrada =
+        document.getElementById(
+            "reservaEntrada"
+        )?.value;
+
+
+    const salida =
+        document.getElementById(
+            "reservaSalida"
+        )?.value;
+
+
+    const adultos =
+        Math.max(
+            1,
+            Number(
+                document.getElementById(
+                    "reservaAdultos"
+                )?.value || 1
+            )
+        );
+
+
+    const ninos =
+        Math.max(
+            0,
+            Number(
+                document.getElementById(
+                    "reservaNinos"
+                )?.value || 0
+            )
+        );
+
+
+    if (!nombre) {
+
+        return notificar(
+            "Ingresa el nombre del huésped."
+        );
+    }
+
+
+    if (!habitacionId) {
+
+        return notificar(
+            "Selecciona una habitación."
+        );
+    }
+
+
+    if (
+        !entrada ||
+        !salida
+    ) {
+
+        return notificar(
+            "Selecciona la fecha de entrada y salida."
+        );
+    }
+
+
+    const fechaEntrada =
+        fechaLocalDesdeISO(
+            entrada
+        );
+
+
+    const fechaSalida =
+        fechaLocalDesdeISO(
+            salida
+        );
+
+
+    if (
+        fechaSalida <=
+        fechaEntrada
+    ) {
+
+        return notificar(
+            "La fecha de salida debe ser posterior a la entrada."
+        );
+    }
+
+
+    const disponible =
+        habitacionDisponibleParaFechas(
+            habitacionId,
+            entrada,
+            salida,
+            id || null
+        );
+
+
+    if (!disponible) {
+
+        return notificar(
+            "La habitación ya está reservada u ocupada en esas fechas."
+        );
+    }
+
+
+    const habitacion =
+        habitaciones.find(
+            h =>
+                Number(h.id) ===
+                habitacionId
+        );
+
+
+    if (!habitacion) {
+
+        return notificar(
+            "Habitación no encontrada."
+        );
+    }
+
+
+    const noches =
+        calcularNoches(
+            entrada,
+            salida
+        );
+
+
+    const total =
+        Number(
+            habitacion.precio
+        ) *
+        noches;
+
+
+    if (id) {
+
+        const reserva =
+            reservas.find(
+                r =>
+                    Number(r.id) === id
+            );
+
+
+        if (!reserva) {
+
+            return;
+        }
+
+
+        reserva.nombre =
+            nombre;
+
+        reserva.dni =
+            dni;
+
+        reserva.telefono =
+            telefono;
+
+        reserva.habitacionId =
+            habitacionId;
+
+        reserva.entrada =
+            entrada;
+
+        reserva.salida =
+            salida;
+
+        reserva.noches =
+            noches;
+
+        reserva.adultos =
+            adultos;
+
+        reserva.ninos =
+            ninos;
+
+        reserva.total =
+            total;
+
+        reserva.tipoEstadia =
+            "DIA";
+
+        reserva.precioAplicado =
+            Number(
+                habitacion.precio
+            );
+
+
+        registrarMovimiento(
+            "RESERVA EDITADA",
+            habitacion.numero,
+            `${nombre} - ${formatearFecha(entrada)} al ${formatearFecha(salida)}`
+        );
+
+
+        notificar(
+            "Reserva actualizada."
+        );
+
+    } else {
+
+        const nuevaReserva = {
+
+            id:
+                generarId(
+                    reservas
+                ),
+
+            nombre,
+
+            dni,
+
+            telefono,
+
+            habitacionId,
+
+            entrada,
+
+            salida,
+
+            noches,
+
+            adultos,
+
+            ninos,
+
+            total,
+
+            estado:
+                "RESERVADA",
+
+            tipoEstadia:
+                "DIA",
+
+            horas:
+                0,
+
+            precioAplicado:
+                Number(
+                    habitacion.precio
+                ),
+
+            fechaHoraEntrada:
+                null,
+
+            fechaHoraSalida:
+                null,
+
+            aviso15:
+                false,
+
+            avisoFin:
+                false,
+
+            creadoEn:
+                new Date().toISOString()
+        };
+
+
+        reservas.push(
+            nuevaReserva
+        );
+
+
+        registrarMovimiento(
+            "RESERVA CREADA",
+            habitacion.numero,
+            `${nombre} - ${formatearFecha(entrada)} al ${formatearFecha(salida)} - ${dinero(total)}`
+        );
+
+
+        notificar(
+            "Reserva creada correctamente."
+        );
+    }
+
+
+    guardarDatos();
+
+    cerrarModal(
+        "modalReserva"
+    );
+
+    renderTodo();
+}
+
+
+/* =========================================================
+   CANCELAR RESERVA
+========================================================= */
+
+function cancelarReserva(id) {
+
+    const reserva =
+        reservas.find(
+            r =>
+                Number(r.id) ===
+                Number(id)
+        );
+
+
+    if (!reserva) {
+
+        return;
+    }
+
+
+    if (
+        reserva.estado ===
+        "OCUPADA"
+    ) {
+
+        return notificar(
+            "No puedes cancelar una reserva con el huésped alojado."
+        );
+    }
+
+
+    if (
+        reserva.estado ===
+        "FINALIZADA"
+    ) {
+
+        return notificar(
+            "Esta estadía ya fue finalizada."
+        );
+    }
+
+
+    if (
+        reserva.estado ===
+        "CANCELADA"
+    ) {
+
+        return;
+    }
+
+
+    const confirmar =
+        window.confirm(
+            `¿Cancelar la reserva de ${reserva.nombre}?`
+        );
+
+
+    if (!confirmar) {
+
+        return;
+    }
+
+
+    reserva.estado =
+        "CANCELADA";
+
+
+    const habitacion =
+        habitaciones.find(
+            h =>
+                Number(h.id) ===
+                Number(
+                    reserva.habitacionId
+                )
+        );
+
+
+    registrarMovimiento(
+        "RESERVA CANCELADA",
+        habitacion?.numero || "",
+        reserva.nombre
+    );
+
+
+    guardarDatos();
+
+    renderTodo();
+
+    notificar(
+        "Reserva cancelada."
+    );
+}
+
+
+/* =========================================================
+   ELIMINAR RESERVA
+========================================================= */
+
+function eliminarReserva(id) {
+
+    const reserva =
+        reservas.find(
+            r =>
+                Number(r.id) ===
+                Number(id)
+        );
+
+
+    if (!reserva) {
+
+        return;
+    }
+
+
+    if (
+        reserva.estado ===
+        "OCUPADA"
+    ) {
+
+        return notificar(
+            "Primero debes realizar el checkout."
+        );
+    }
+
+
+    const confirmar =
+        window.confirm(
+            `¿Eliminar definitivamente la reserva de ${reserva.nombre}?`
+        );
+
+
+    if (!confirmar) {
+
+        return;
+    }
+
+
+    const habitacion =
+        habitaciones.find(
+            h =>
+                Number(h.id) ===
+                Number(
+                    reserva.habitacionId
+                )
+        );
+
+
+    reservas =
+        reservas.filter(
+            r =>
+                Number(r.id) !==
+                Number(id)
+        );
+
+
+    registrarMovimiento(
+        "RESERVA ELIMINADA",
+        habitacion?.numero || "",
+        reserva.nombre
+    );
+
+
+    guardarDatos();
+
+    renderTodo();
+
+    notificar(
+        "Reserva eliminada."
+    );
+}
+
+
+/* =========================================================
+   HACER CHECK-IN DE RESERVA FUTURA
+========================================================= */
+
+function hacerCheckInReserva(id) {
+
+    const reserva =
+        reservas.find(
+            r =>
+                Number(r.id) ===
+                Number(id)
+        );
+
+
+    if (!reserva) {
+
+        return notificar(
+            "Reserva no encontrada."
+        );
+    }
+
+
+    if (
+        reserva.estado !==
+        "RESERVADA"
+    ) {
+
+        return notificar(
+            "Esta reserva no está pendiente de check-in."
+        );
+    }
+
+
+    const habitacion =
+        habitaciones.find(
+            h =>
+                Number(h.id) ===
+                Number(
+                    reserva.habitacionId
+                )
+        );
+
+
+    if (!habitacion) {
+
+        return notificar(
+            "Habitación no encontrada."
+        );
+    }
+
+
+    const otraOcupacion =
+        reservas.some(
+            r =>
+                Number(r.id) !==
+                    Number(reserva.id)
+                &&
+                Number(
+                    r.habitacionId
+                ) ===
+                    Number(
+                        habitacion.id
+                    )
+                &&
+                r.estado ===
+                    "OCUPADA"
+        );
+
+
+    if (otraOcupacion) {
+
+        return notificar(
+            "La habitación está ocupada actualmente."
+        );
+    }
+
+
+    reserva.estado =
+        "OCUPADA";
+
+    reserva.tipoEstadia =
+        "DIA";
+
+
+    if (
+        !reserva.precioAplicado
+    ) {
+
+        reserva.precioAplicado =
+            Number(
+                habitacion.precio
+            );
+    }
+
+
+    habitacion.estado =
+        "OCUPADA";
+
+
+    registrarMovimiento(
+        "CHECK-IN RESERVA",
+        habitacion.numero,
+        `${reserva.nombre} ingresó a la habitación.`
+    );
+
+
+    guardarDatos();
+
+    renderTodo();
+
+    notificar(
+        `Check-in realizado en la habitación ${habitacion.numero}.`
+    );
+}
+
+
+/* =========================================================
+   TARJETA / FILA DE RESERVA
+========================================================= */
+
+function crearHTMLReserva(reserva) {
+
+    const habitacion =
+        habitaciones.find(
+            h =>
+                Number(h.id) ===
+                Number(
+                    reserva.habitacionId
+                )
+        );
+
+
+    const numeroHabitacion =
+        habitacion
+            ? habitacion.numero
+            : "-";
+
+
+    let modalidad = "POR DÍA";
+
+
+    if (
+        reserva.tipoEstadia ===
+        "HORAS"
+    ) {
+
+        modalidad =
+            `POR HORAS (${reserva.horas} h)`;
+    }
+
+
+    return `
+        <tr>
+
+            <td>
+                ${escaparHTML(
+                    reserva.nombre
+                )}
+            </td>
+
+            <td>
+                ${escaparHTML(
+                    reserva.dni || "-"
+                )}
+            </td>
+
+            <td>
+                Hab. ${escaparHTML(
+                    numeroHabitacion
+                )}
+            </td>
+
+            <td>
+                ${modalidad}
+            </td>
+
+            <td>
+                ${
+                    reserva.tipoEstadia ===
+                    "HORAS"
+                        ?
+                        formatearFechaHora(
+                            reserva.fechaHoraEntrada
+                        )
+                        :
+                        formatearFecha(
+                            reserva.entrada
+                        )
+                }
+            </td>
+
+            <td>
+                ${
+                    reserva.tipoEstadia ===
+                    "HORAS"
+                        ?
+                        formatearFechaHora(
+                            reserva.fechaHoraSalida
+                        )
+                        :
+                        formatearFecha(
+                            reserva.salida
+                        )
+                }
+            </td>
+
+            <td>
+                ${dinero(
+                    reserva.total
+                )}
+            </td>
+
+            <td>
+                <span class="estado-reserva estado-${String(
+                    reserva.estado
+                ).toLowerCase()}">
+                    ${reserva.estado}
+                </span>
+            </td>
+
+            <td class="acciones-tabla">
+
+                ${
+                    reserva.estado ===
+                    "RESERVADA"
+                        ?
+                        `
+                        <button
+                            class="btn-tabla"
+                            onclick="hacerCheckInReserva(${reserva.id})"
+                        >
+                            Check-in
+                        </button>
+
+                        <button
+                            class="btn-tabla"
+                            onclick="abrirModalReserva(${reserva.id})"
+                        >
+                            Editar
+                        </button>
+
+                        <button
+                            class="btn-tabla peligro"
+                            onclick="cancelarReserva(${reserva.id})"
+                        >
+                            Cancelar
+                        </button>
+                        `
+                        :
+                        ""
+                }
+
+                ${
+                    reserva.estado ===
+                    "OCUPADA"
+                        ?
+                        `
+                        <button
+                            class="btn-tabla"
+                            onclick="abrirCuenta(${reserva.id})"
+                        >
+                            Cuenta
+                        </button>
+                        `
+                        :
+                        ""
+                }
+
+                ${
+                    reserva.estado ===
+                        "CANCELADA"
+                    ||
+                    reserva.estado ===
+                        "FINALIZADA"
+                        ?
+                        `
+                        <button
+                            class="btn-tabla peligro"
+                            onclick="eliminarReserva(${reserva.id})"
+                        >
+                            Eliminar
+                        </button>
+                        `
+                        :
+                        ""
+                }
+
+            </td>
+
+        </tr>
+    `;
+}
+
+
+/* =========================================================
+   RENDER RESERVAS
+========================================================= */
+
+function renderReservas() {
+
+    const tabla =
+        document.getElementById(
+            "tablaReservas"
+        );
+
+
+    if (!tabla) {
+
+        return;
+    }
+
+
+    const lista =
+        reservas
+            .slice()
+            .sort(
+                (a, b) => {
+
+                    const fechaA =
+                        a.fechaHoraEntrada ||
+                        `${a.entrada || "9999-12-31"}T00:00:00`;
+
+                    const fechaB =
+                        b.fechaHoraEntrada ||
+                        `${b.entrada || "9999-12-31"}T00:00:00`;
+
+                    return new Date(fechaB) -
+                        new Date(fechaA);
+                }
+            );
+
+
+    if (!lista.length) {
+
+        tabla.innerHTML = `
+            <tr>
+                <td
+                    colspan="9"
+                    class="sin-datos"
+                >
+                    No hay reservas registradas.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+
+    tabla.innerHTML =
+        lista
+            .map(
+                crearHTMLReserva
+            )
+            .join("");
+}
+
+
+/* =========================================================
+   RESERVAS EN INICIO
+========================================================= */
+
+function renderReservasInicio() {
+
+    const contenedor =
+        document.getElementById(
+            "reservasInicio"
+        );
+
+
+    if (!contenedor) {
+
+        return;
+    }
+
+
+    const activas =
+        reservas
+            .filter(
+                r =>
+                    r.estado ===
+                    "RESERVADA"
+            )
+            .sort(
+                (a, b) =>
+                    String(
+                        a.entrada
+                    ).localeCompare(
+                        String(
+                            b.entrada
+                        )
+                    )
+            )
+            .slice(
+                0,
+                5
+            );
+
+
+    if (!activas.length) {
+
+        contenedor.innerHTML = `
+            <div class="sin-datos">
+                No hay próximas reservas.
+            </div>
+        `;
+
+        return;
+    }
+
+
+    contenedor.innerHTML =
+        activas
+            .map(
+                reserva => {
+
+                    const habitacion =
+                        habitaciones.find(
+                            h =>
+                                Number(h.id) ===
+                                Number(
+                                    reserva.habitacionId
+                                )
+                        );
+
+
+                    return `
+                        <div class="reserva-inicio-item">
+
+                            <div>
+                                <strong>
+                                    ${escaparHTML(
+                                        reserva.nombre
+                                    )}
+                                </strong>
+
+                                <span>
+                                    Habitación
+                                    ${escaparHTML(
+                                        habitacion?.numero || "-"
+                                    )}
+                                </span>
+                            </div>
+
+                            <div>
+                                <strong>
+                                    ${formatearFecha(
+                                        reserva.entrada
+                                    )}
+                                </strong>
+
+                                <span>
+                                    ${dinero(
+                                        reserva.total
+                                    )}
+                                </span>
+                            </div>
+
+                        </div>
+                    `;
+                }
+            )
+            .join("");
+}
 /* =========================================================
    HUÉSPEDES
 ========================================================= */
@@ -2725,49 +4758,39 @@ function renderHuespedes() {
         return;
     }
 
-    const busqueda =
-        (
-            document.getElementById(
-                "buscarHuesped"
-            )?.value || ""
-        )
-        .trim()
-        .toLowerCase();
 
-    let lista =
-        [...reservas]
-        .filter(
-            r =>
-                r.estado !== "CANCELADA"
-        )
-        .sort(
-            (a, b) =>
-                b.id - a.id
-        );
-
-    if (busqueda) {
-
-        lista =
-            lista.filter(r =>
-
-                r.nombre
-                    .toLowerCase()
-                    .includes(busqueda)
-
-                ||
-
-                String(r.dni)
-                    .toLowerCase()
-                    .includes(busqueda)
+    const lista =
+        reservas
+            .filter(
+                reserva =>
+                    reserva.estado ===
+                        "OCUPADA"
+                    ||
+                    reserva.estado ===
+                        "RESERVADA"
+            )
+            .slice()
+            .sort(
+                (a, b) =>
+                    String(
+                        a.nombre
+                    ).localeCompare(
+                        String(
+                            b.nombre
+                        )
+                    )
             );
-    }
+
 
     if (!lista.length) {
 
         tabla.innerHTML = `
             <tr>
-                <td colspan="5">
-                    No hay huéspedes.
+                <td
+                    colspan="7"
+                    class="sin-datos"
+                >
+                    No hay huéspedes registrados.
                 </td>
             </tr>
         `;
@@ -2775,44 +4798,95 @@ function renderHuespedes() {
         return;
     }
 
+
     tabla.innerHTML =
-        lista.map(r => {
+        lista
+            .map(
+                reserva => {
 
-            const habitacion =
-                habitaciones.find(
-                    h =>
-                        Number(h.id) ===
-                        Number(r.habitacionId)
-                );
+                    const habitacion =
+                        habitaciones.find(
+                            h =>
+                                Number(h.id) ===
+                                Number(
+                                    reserva.habitacionId
+                                )
+                        );
 
-            return `
 
-                <tr>
+                    let estadia =
+                        "POR DÍA";
 
-                    <td>
-                        ${escaparHTML(r.nombre)}
-                    </td>
 
-                    <td>
-                        ${escaparHTML(r.dni)}
-                    </td>
+                    if (
+                        reserva.tipoEstadia ===
+                        "HORAS"
+                    ) {
 
-                    <td>
-                        ${escaparHTML(r.telefono || "-")}
-                    </td>
+                        estadia =
+                            `POR HORAS (${reserva.horas} h)`;
+                    }
 
-                    <td>
-                        ${escaparHTML(habitacion?.numero || "-")}
-                    </td>
 
-                    <td>
-                        ${r.estado}
-                    </td>
+                    return `
+                        <tr>
 
-                </tr>
-            `;
+                            <td>
+                                ${escaparHTML(
+                                    reserva.nombre
+                                )}
+                            </td>
 
-        }).join("");
+                            <td>
+                                ${escaparHTML(
+                                    reserva.dni || "-"
+                                )}
+                            </td>
+
+                            <td>
+                                ${escaparHTML(
+                                    reserva.telefono || "-"
+                                )}
+                            </td>
+
+                            <td>
+                                Hab.
+                                ${escaparHTML(
+                                    habitacion?.numero || "-"
+                                )}
+                            </td>
+
+                            <td>
+                                ${estadia}
+                            </td>
+
+                            <td>
+                                ${reserva.estado}
+                            </td>
+
+                            <td>
+                                ${
+                                    reserva.estado ===
+                                    "OCUPADA"
+                                        ?
+                                        `
+                                        <button
+                                            class="btn-tabla"
+                                            onclick="abrirCuenta(${reserva.id})"
+                                        >
+                                            Ver cuenta
+                                        </button>
+                                        `
+                                        :
+                                        "-"
+                                }
+                            </td>
+
+                        </tr>
+                    `;
+                }
+            )
+            .join("");
 }
 
 
@@ -2820,31 +4894,66 @@ function renderHuespedes() {
    PRODUCTOS
 ========================================================= */
 
-function abrirModalProducto(id = null) {
+function abrirModalProducto(
+    id = null
+) {
 
-    document.getElementById(
-        "productoEditandoId"
-    ).value = "";
+    const idInput =
+        document.getElementById(
+            "productoEditandoId"
+        );
 
-    document.getElementById(
-        "nombreProducto"
-    ).value = "";
+    const nombre =
+        document.getElementById(
+            "productoNombre"
+        );
 
-    document.getElementById(
-        "categoriaProducto"
-    ).value = "Bebida";
+    const categoria =
+        document.getElementById(
+            "productoCategoria"
+        );
 
-    document.getElementById(
-        "precioProducto"
-    ).value = "";
+    const precio =
+        document.getElementById(
+            "productoPrecio"
+        );
 
-    document.getElementById(
-        "stockProducto"
-    ).value = "";
+    const stock =
+        document.getElementById(
+            "productoStock"
+        );
 
-    document.getElementById(
-        "tituloModalProducto"
-    ).textContent = "Nuevo producto";
+    const titulo =
+        document.getElementById(
+            "tituloModalProducto"
+        );
+
+
+    if (idInput) {
+        idInput.value = "";
+    }
+
+    if (nombre) {
+        nombre.value = "";
+    }
+
+    if (categoria) {
+        categoria.value = "Bebida";
+    }
+
+    if (precio) {
+        precio.value = "";
+    }
+
+    if (stock) {
+        stock.value = "";
+    }
+
+    if (titulo) {
+        titulo.textContent =
+            "Nuevo producto";
+    }
+
 
     if (id !== null) {
 
@@ -2855,38 +4964,53 @@ function abrirModalProducto(id = null) {
                     Number(id)
             );
 
+
         if (!producto) {
             return;
         }
 
-        document.getElementById(
-            "productoEditandoId"
-        ).value = producto.id;
 
-        document.getElementById(
-            "nombreProducto"
-        ).value = producto.nombre;
+        if (idInput) {
+            idInput.value =
+                producto.id;
+        }
 
-        document.getElementById(
-            "categoriaProducto"
-        ).value = producto.categoria;
+        if (nombre) {
+            nombre.value =
+                producto.nombre;
+        }
 
-        document.getElementById(
-            "precioProducto"
-        ).value = producto.precio;
+        if (categoria) {
+            categoria.value =
+                producto.categoria;
+        }
 
-        document.getElementById(
-            "stockProducto"
-        ).value = producto.stock;
+        if (precio) {
+            precio.value =
+                producto.precio;
+        }
 
-        document.getElementById(
-            "tituloModalProducto"
-        ).textContent = "Editar producto";
+        if (stock) {
+            stock.value =
+                producto.stock;
+        }
+
+        if (titulo) {
+            titulo.textContent =
+                "Editar producto";
+        }
     }
 
-    abrirModal("modalProducto");
+
+    abrirModal(
+        "modalProducto"
+    );
 }
 
+
+/* =========================================================
+   GUARDAR PRODUCTO
+========================================================= */
 
 function guardarProducto() {
 
@@ -2894,53 +5018,70 @@ function guardarProducto() {
         Number(
             document.getElementById(
                 "productoEditandoId"
-            ).value
-        ) || null;
+            )?.value
+        );
+
 
     const nombre =
         document.getElementById(
-            "nombreProducto"
-        ).value.trim();
+            "productoNombre"
+        )?.value.trim();
+
 
     const categoria =
         document.getElementById(
-            "categoriaProducto"
-        ).value;
+            "productoCategoria"
+        )?.value ||
+        "Otro";
+
 
     const precio =
         Number(
             document.getElementById(
-                "precioProducto"
-            ).value
+                "productoPrecio"
+            )?.value
         );
+
 
     const stock =
         Number(
             document.getElementById(
-                "stockProducto"
-            ).value
+                "productoStock"
+            )?.value
         );
+
 
     if (!nombre) {
 
-        notificar(
+        return notificar(
             "Ingresa el nombre del producto."
         );
-
-        return;
     }
 
+
     if (
-        precio < 0 ||
+        !Number.isFinite(precio)
+        ||
+        precio < 0
+    ) {
+
+        return notificar(
+            "Ingresa un precio válido."
+        );
+    }
+
+
+    if (
+        !Number.isFinite(stock)
+        ||
         stock < 0
     ) {
 
-        notificar(
-            "Precio y stock no pueden ser negativos."
+        return notificar(
+            "Ingresa un stock válido."
         );
-
-        return;
     }
+
 
     if (id) {
 
@@ -2950,23 +5091,31 @@ function guardarProducto() {
                     Number(p.id) === id
             );
 
+
         if (!producto) {
             return;
         }
 
-        const stockAnterior =
-            producto.stock;
 
-        producto.nombre = nombre;
-        producto.categoria = categoria;
-        producto.precio = precio;
-        producto.stock = stock;
+        producto.nombre =
+            nombre;
+
+        producto.categoria =
+            categoria;
+
+        producto.precio =
+            precio;
+
+        producto.stock =
+            stock;
+
 
         registrarMovimiento(
             "PRODUCTO EDITADO",
-            "-",
-            `${nombre}. Stock: ${stockAnterior} → ${stock}. Precio: ${dinero(precio)}.`
+            nombre,
+            `Precio: ${dinero(precio)} - Stock: ${stock}`
         );
+
 
         notificar(
             "Producto actualizado."
@@ -2976,7 +5125,10 @@ function guardarProducto() {
 
         productos.push({
 
-            id: generarId(productos),
+            id:
+                generarId(
+                    productos
+                ),
 
             nombre,
 
@@ -2987,61 +5139,59 @@ function guardarProducto() {
             stock
         });
 
+
         registrarMovimiento(
             "PRODUCTO CREADO",
-            "-",
-            `${nombre} - Stock ${stock} - ${dinero(precio)}.`
+            nombre,
+            `Precio: ${dinero(precio)} - Stock: ${stock}`
         );
+
 
         notificar(
             "Producto agregado."
         );
     }
 
+
     guardarDatos();
 
-    cerrarModal("modalProducto");
+    cerrarModal(
+        "modalProducto"
+    );
 
     renderTodo();
 }
 
+
+/* =========================================================
+   ELIMINAR PRODUCTO
+========================================================= */
 
 function eliminarProducto(id) {
 
     const producto =
         productos.find(
             p =>
-                Number(p.id) === Number(id)
+                Number(p.id) ===
+                Number(id)
         );
+
 
     if (!producto) {
         return;
     }
 
-    const tieneConsumos =
-        consumos.some(
-            c =>
-                Number(c.productoId) ===
-                Number(id)
-        );
-
-    if (tieneConsumos) {
-
-        alert(
-            "Este producto ya tiene consumos registrados y no puede eliminarse. Puedes dejar su stock en 0."
-        );
-
-        return;
-    }
 
     const confirmar =
-        confirm(
-            `¿Eliminar ${producto.nombre}?`
+        window.confirm(
+            `¿Eliminar el producto ${producto.nombre}?`
         );
+
 
     if (!confirmar) {
         return;
     }
+
 
     productos =
         productos.filter(
@@ -3050,11 +5200,13 @@ function eliminarProducto(id) {
                 Number(id)
         );
 
+
     registrarMovimiento(
         "PRODUCTO ELIMINADO",
-        "-",
-        `${producto.nombre} fue eliminado del inventario.`
+        producto.nombre,
+        ""
     );
+
 
     guardarDatos();
 
@@ -3066,6 +5218,10 @@ function eliminarProducto(id) {
 }
 
 
+/* =========================================================
+   RENDER PRODUCTOS
+========================================================= */
+
 function renderProductos() {
 
     const tabla =
@@ -3073,472 +5229,567 @@ function renderProductos() {
             "tablaProductos"
         );
 
+
     if (!tabla) {
         return;
     }
 
-    const busqueda =
-        (
-            document.getElementById(
-                "buscarProducto"
-            )?.value || ""
-        )
-        .trim()
-        .toLowerCase();
 
-    let lista =
-        [...productos]
-        .sort(
-            (a, b) =>
-                a.nombre.localeCompare(
-                    b.nombre
-                )
-        );
-
-    if (busqueda) {
-
-        lista =
-            lista.filter(p =>
-
-                p.nombre
-                    .toLowerCase()
-                    .includes(busqueda)
-
-                ||
-
-                p.categoria
-                    .toLowerCase()
-                    .includes(busqueda)
+    const lista =
+        productos
+            .slice()
+            .sort(
+                (a, b) =>
+                    String(
+                        a.nombre
+                    ).localeCompare(
+                        String(
+                            b.nombre
+                        )
+                    )
             );
-    }
 
-    tabla.innerHTML =
-        lista.length
 
-        ?
+    if (!lista.length) {
 
-        lista.map(p => `
-
+        tabla.innerHTML = `
             <tr>
-
-                <td>
-                    ${escaparHTML(p.nombre)}
-                </td>
-
-                <td>
-                    ${escaparHTML(p.categoria)}
-                </td>
-
-                <td>
-                    ${dinero(p.precio)}
-                </td>
-
-                <td>
-                    ${p.stock}
-                </td>
-
-                <td>
-
-                    <button
-                        class="tabla-boton azul"
-                        onclick="abrirModalProducto(${p.id})"
-                    >
-                        ✏️ Editar
-                    </button>
-
-                    <button
-                        class="tabla-boton rojo"
-                        onclick="eliminarProducto(${p.id})"
-                    >
-                        🗑 Eliminar
-                    </button>
-
-                </td>
-
-            </tr>
-
-        `).join("")
-
-        :
-
-        `
-            <tr>
-                <td colspan="5">
-                    No hay productos.
+                <td
+                    colspan="6"
+                    class="sin-datos"
+                >
+                    No hay productos registrados.
                 </td>
             </tr>
         `;
 
-    const totalProductos =
-        document.getElementById(
-            "totalProductos"
-        );
-
-    const stockTotal =
-        document.getElementById(
-            "stockTotal"
-        );
-
-    if (totalProductos) {
-        totalProductos.textContent =
-            productos.length;
+        return;
     }
 
-    if (stockTotal) {
 
-        stockTotal.textContent =
-            productos.reduce(
-                (total, p) =>
-                    total + Number(p.stock),
-                0
-            );
-    }
+    tabla.innerHTML =
+        lista
+            .map(
+                producto => `
+                    <tr>
+
+                        <td>
+                            ${producto.id}
+                        </td>
+
+                        <td>
+                            ${escaparHTML(
+                                producto.nombre
+                            )}
+                        </td>
+
+                        <td>
+                            ${escaparHTML(
+                                producto.categoria
+                            )}
+                        </td>
+
+                        <td>
+                            ${dinero(
+                                producto.precio
+                            )}
+                        </td>
+
+                        <td>
+                            ${producto.stock}
+                        </td>
+
+                        <td class="acciones-tabla">
+
+                            <button
+                                class="btn-tabla"
+                                onclick="abrirModalProducto(${producto.id})"
+                            >
+                                Editar
+                            </button>
+
+                            <button
+                                class="btn-tabla peligro"
+                                onclick="eliminarProducto(${producto.id})"
+                            >
+                                Eliminar
+                            </button>
+
+                        </td>
+
+                    </tr>
+                `
+            )
+            .join("");
 }
 
 
 /* =========================================================
-   CONSUMOS
+   ABRIR MODAL CONSUMO
 ========================================================= */
 
 function abrirModalConsumo(
-    habitacionId = null
+    reservaId = null
 ) {
 
-    const select =
+    const selectReserva =
         document.getElementById(
-            "habitacionConsumo"
+            "consumoReserva"
         );
 
-    const ocupadas =
-        habitaciones.filter(
-            h =>
-                h.estado === "OCUPADA"
+
+    const selectProducto =
+        document.getElementById(
+            "consumoProducto"
         );
 
-    if (!ocupadas.length) {
 
-        alert(
-            "No hay habitaciones ocupadas."
+    const cantidad =
+        document.getElementById(
+            "consumoCantidad"
         );
 
-        return;
-    }
-
-    select.innerHTML =
-        ocupadas.map(h => {
-
-            const reserva =
-                obtenerReservaOcupadaHabitacion(
-                    h.id
-                );
-
-            return `
-
-                <option value="${h.id}">
-                    Hab. ${escaparHTML(h.numero)}
-                    - ${escaparHTML(reserva?.nombre || "")}
-                </option>
-            `;
-
-        }).join("");
 
     if (
-        habitacionId &&
-        ocupadas.some(
-            h =>
-                Number(h.id) ===
-                Number(habitacionId)
-        )
+        !selectReserva ||
+        !selectProducto
     ) {
-        select.value =
-            habitacionId;
-    }
 
-    actualizarProductosConsumo();
-
-    abrirModal("modalConsumo");
-}
-
-
-function actualizarProductosConsumo() {
-
-    const contenedor =
-        document.getElementById(
-            "listaProductosConsumo"
-        );
-
-    if (!contenedor) {
         return;
     }
 
-    const lista =
-        productos.filter(
+
+    selectReserva.innerHTML = `
+        <option value="">
+            Seleccionar habitación
+        </option>
+    `;
+
+
+    reservas
+        .filter(
+            r =>
+                r.estado ===
+                "OCUPADA"
+        )
+        .forEach(
+            reserva => {
+
+                const habitacion =
+                    habitaciones.find(
+                        h =>
+                            Number(h.id) ===
+                            Number(
+                                reserva.habitacionId
+                            )
+                    );
+
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+
+                option.value =
+                    reserva.id;
+
+
+                option.textContent =
+                    `Hab. ${habitacion?.numero || "-"} - ${reserva.nombre}`;
+
+
+                selectReserva.appendChild(
+                    option
+                );
+            }
+        );
+
+
+    selectProducto.innerHTML = `
+        <option value="">
+            Seleccionar producto
+        </option>
+    `;
+
+
+    productos
+        .filter(
             p =>
                 Number(p.stock) > 0
+        )
+        .forEach(
+            producto => {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+
+                option.value =
+                    producto.id;
+
+
+                option.textContent =
+                    `${producto.nombre} - ${dinero(producto.precio)} - Stock ${producto.stock}`;
+
+
+                selectProducto.appendChild(
+                    option
+                );
+            }
         );
 
-    if (!lista.length) {
 
-        contenedor.innerHTML = `
-            <div style="padding:15px;">
-                No hay productos con stock.
-            </div>
-        `;
+    if (
+        reservaId &&
+        [...selectReserva.options].some(
+            option =>
+                Number(option.value) ===
+                Number(reservaId)
+        )
+    ) {
 
-        document.getElementById(
-            "totalProductosConsumo"
-        ).textContent = dinero(0);
-
-        return;
+        selectReserva.value =
+            reservaId;
     }
 
-    contenedor.innerHTML =
-        lista.map(p => `
 
-            <div class="producto-consumo-fila">
+    if (cantidad) {
 
-                <strong>
-                    ${escaparHTML(p.nombre)}
-                </strong>
+        cantidad.value = 1;
+    }
 
-                <span>
-                    ${dinero(p.precio)}
-                </span>
 
-                <span>
-                    ${p.stock}
-                </span>
+    calcularConsumo();
 
-                <input
-                    class="cantidad-producto"
-                    type="number"
-                    min="0"
-                    max="${p.stock}"
-                    value="0"
-                    data-producto="${p.id}"
-                    oninput="calcularTotalConsumos()"
-                >
-
-            </div>
-
-        `).join("");
-
-    calcularTotalConsumos();
+    abrirModal(
+        "modalConsumo"
+    );
 }
 
 
-function calcularTotalConsumos() {
+/* =========================================================
+   CALCULAR CONSUMO
+========================================================= */
 
-    let total = 0;
+function calcularConsumo() {
 
-    document
-        .querySelectorAll(
-            ".cantidad-producto"
-        )
-        .forEach(input => {
+    const productoId =
+        Number(
+            document.getElementById(
+                "consumoProducto"
+            )?.value
+        );
 
-            const productoId =
-                Number(
-                    input.dataset.producto
-                );
 
-            const cantidad =
-                Number(
-                    input.value || 0
-                );
+    const cantidad =
+        Math.max(
+            1,
+            Number(
+                document.getElementById(
+                    "consumoCantidad"
+                )?.value || 1
+            )
+        );
 
-            const producto =
-                productos.find(
-                    p =>
-                        Number(p.id) ===
-                        productoId
-                );
 
-            if (producto) {
+    const producto =
+        productos.find(
+            p =>
+                Number(p.id) ===
+                productoId
+        );
 
-                total +=
-                    cantidad *
-                    producto.precio;
-            }
-        });
+
+    const total =
+        producto
+            ?
+            Number(
+                producto.precio
+            ) * cantidad
+            :
+            0;
+
 
     const elemento =
         document.getElementById(
-            "totalProductosConsumo"
+            "consumoTotal"
         );
 
+
     if (elemento) {
+
         elemento.textContent =
             dinero(total);
     }
+
+
+    return total;
 }
 
 
-function guardarVariosConsumos() {
+/* =========================================================
+   GUARDAR CONSUMO
+========================================================= */
 
-    const habitacionId =
+function guardarConsumo() {
+
+    const reservaId =
         Number(
             document.getElementById(
-                "habitacionConsumo"
-            ).value
+                "consumoReserva"
+            )?.value
         );
+
+
+    const productoId =
+        Number(
+            document.getElementById(
+                "consumoProducto"
+            )?.value
+        );
+
+
+    const cantidad =
+        Math.max(
+            1,
+            Number(
+                document.getElementById(
+                    "consumoCantidad"
+                )?.value || 1
+            )
+        );
+
+
+    if (!reservaId) {
+
+        return notificar(
+            "Selecciona una habitación."
+        );
+    }
+
+
+    if (!productoId) {
+
+        return notificar(
+            "Selecciona un producto."
+        );
+    }
+
 
     const reserva =
-        obtenerReservaOcupadaHabitacion(
-            habitacionId
+        reservas.find(
+            r =>
+                Number(r.id) ===
+                reservaId
         );
 
-    if (!reserva) {
 
-        alert(
-            "No se encontró una estadía activa para esa habitación."
+    const producto =
+        productos.find(
+            p =>
+                Number(p.id) ===
+                productoId
         );
 
-        return;
-    }
 
-    const seleccionados = [];
-
-    document
-        .querySelectorAll(
-            ".cantidad-producto"
-        )
-        .forEach(input => {
-
-            const cantidad =
-                Number(
-                    input.value || 0
-                );
-
-            if (cantidad > 0) {
-
-                seleccionados.push({
-
-                    productoId:
-                        Number(
-                            input.dataset.producto
-                        ),
-
-                    cantidad
-                });
-            }
-        });
-
-    if (!seleccionados.length) {
-
-        notificar(
-            "Selecciona al menos un producto."
-        );
-
-        return;
-    }
-
-    for (
-        const item of seleccionados
+    if (
+        !reserva ||
+        reserva.estado !==
+        "OCUPADA"
     ) {
 
-        const producto =
-            productos.find(
-                p =>
-                    Number(p.id) ===
-                    item.productoId
-            );
-
-        if (!producto) {
-            continue;
-        }
-
-        if (
-            item.cantidad >
-            producto.stock
-        ) {
-
-            alert(
-                `Stock insuficiente para ${producto.nombre}. Disponible: ${producto.stock}.`
-            );
-
-            return;
-        }
+        return notificar(
+            "La habitación no tiene una estadía activa."
+        );
     }
+
+
+    if (!producto) {
+
+        return notificar(
+            "Producto no encontrado."
+        );
+    }
+
+
+    if (
+        Number(producto.stock) <
+        cantidad
+    ) {
+
+        return notificar(
+            `Stock insuficiente. Disponible: ${producto.stock}.`
+        );
+    }
+
+
+    const total =
+        Number(
+            producto.precio
+        ) *
+        cantidad;
+
+
+    consumos.push({
+
+        id:
+            generarId(
+                consumos
+            ),
+
+        reservaId:
+            reserva.id,
+
+        habitacionId:
+            reserva.habitacionId,
+
+        productoId:
+            producto.id,
+
+        producto:
+            producto.nombre,
+
+        cantidad,
+
+        precio:
+            Number(
+                producto.precio
+            ),
+
+        total,
+
+        fecha:
+            new Date().toISOString()
+    });
+
+
+    producto.stock =
+        Number(
+            producto.stock
+        ) -
+        cantidad;
+
 
     const habitacion =
         habitaciones.find(
             h =>
                 Number(h.id) ===
-                habitacionId
+                Number(
+                    reserva.habitacionId
+                )
         );
 
-    const detalles = [];
-
-    seleccionados.forEach(item => {
-
-        const producto =
-            productos.find(
-                p =>
-                    Number(p.id) ===
-                    item.productoId
-            );
-
-        if (!producto) {
-            return;
-        }
-
-        const total =
-            producto.precio *
-            item.cantidad;
-
-        producto.stock -=
-            item.cantidad;
-
-        consumos.push({
-
-            id: generarId(consumos),
-
-            reservaId:
-                reserva.id,
-
-            habitacionId,
-
-            productoId:
-                producto.id,
-
-            producto:
-                producto.nombre,
-
-            cantidad:
-                item.cantidad,
-
-            precio:
-                producto.precio,
-
-            total,
-
-            fecha:
-                new Date().toISOString()
-        });
-
-        detalles.push(
-            `${item.cantidad} x ${producto.nombre}`
-        );
-    });
 
     registrarMovimiento(
         "CONSUMO",
-        habitacion?.numero || "-",
-        `${reserva.nombre}: ${detalles.join(", ")}.`
+        habitacion?.numero || "",
+        `${cantidad} x ${producto.nombre} = ${dinero(total)}`
     );
+
 
     guardarDatos();
 
-    cerrarModal("modalConsumo");
+    cerrarModal(
+        "modalConsumo"
+    );
+
+    renderTodo();
+
+
+    notificar(
+        "Consumo agregado a la habitación."
+    );
+}
+
+
+/* =========================================================
+   ELIMINAR CONSUMO
+========================================================= */
+
+function eliminarConsumo(id) {
+
+    const consumo =
+        consumos.find(
+            c =>
+                Number(c.id) ===
+                Number(id)
+        );
+
+
+    if (!consumo) {
+        return;
+    }
+
+
+    const confirmar =
+        window.confirm(
+            "¿Eliminar este consumo?"
+        );
+
+
+    if (!confirmar) {
+        return;
+    }
+
+
+    const producto =
+        productos.find(
+            p =>
+                Number(p.id) ===
+                Number(
+                    consumo.productoId
+                )
+        );
+
+
+    /*
+     * Al eliminar el consumo devolvemos
+     * la cantidad al stock.
+     */
+
+    if (producto) {
+
+        producto.stock =
+            Number(
+                producto.stock
+            ) +
+            Number(
+                consumo.cantidad
+            );
+    }
+
+
+    consumos =
+        consumos.filter(
+            c =>
+                Number(c.id) !==
+                Number(id)
+        );
+
+
+    registrarMovimiento(
+        "CONSUMO ELIMINADO",
+        "",
+        `${consumo.cantidad} x ${consumo.producto || "Producto"}`
+    );
+
+
+    guardarDatos();
 
     renderTodo();
 
     notificar(
-        "Productos agregados a la habitación."
+        "Consumo eliminado."
     );
 }
 
+
+/* =========================================================
+   RENDER CONSUMOS
+========================================================= */
 
 function renderConsumos() {
 
@@ -3547,24 +5798,35 @@ function renderConsumos() {
             "tablaConsumos"
         );
 
+
     if (!tabla) {
         return;
     }
 
+
     const lista =
-        [...consumos]
-        .sort(
-            (a, b) =>
-                new Date(b.fecha) -
-                new Date(a.fecha)
-        );
+        consumos
+            .slice()
+            .sort(
+                (a, b) =>
+                    new Date(
+                        b.fecha
+                    ) -
+                    new Date(
+                        a.fecha
+                    )
+            );
+
 
     if (!lista.length) {
 
         tabla.innerHTML = `
             <tr>
-                <td colspan="7">
-                    No hay consumos.
+                <td
+                    colspan="7"
+                    class="sin-datos"
+                >
+                    No hay consumos registrados.
                 </td>
             </tr>
         `;
@@ -3572,397 +5834,562 @@ function renderConsumos() {
         return;
     }
 
+
     tabla.innerHTML =
-        lista.map(c => {
+        lista
+            .map(
+                consumo => {
 
-            const reserva =
-                reservas.find(
-                    r =>
-                        Number(r.id) ===
-                        Number(c.reservaId)
-                );
+                    const reserva =
+                        reservas.find(
+                            r =>
+                                Number(r.id) ===
+                                Number(
+                                    consumo.reservaId
+                                )
+                        );
 
-            const habitacion =
-                habitaciones.find(
-                    h =>
-                        Number(h.id) ===
-                        Number(c.habitacionId)
-                );
 
-            return `
+                    const habitacion =
+                        habitaciones.find(
+                            h =>
+                                Number(h.id) ===
+                                Number(
+                                    consumo.habitacionId
+                                )
+                        );
 
-                <tr>
 
-                    <td>
-                        ${formatearFechaHora(c.fecha)}
-                    </td>
+                    return `
+                        <tr>
 
-                    <td>
-                        ${escaparHTML(habitacion?.numero || "-")}
-                    </td>
+                            <td>
+                                ${formatearFechaHora(
+                                    consumo.fecha
+                                )}
+                            </td>
 
-                    <td>
-                        ${escaparHTML(reserva?.nombre || "-")}
-                    </td>
+                            <td>
+                                Hab.
+                                ${escaparHTML(
+                                    habitacion?.numero || "-"
+                                )}
+                            </td>
 
-                    <td>
-                        ${escaparHTML(c.producto)}
-                    </td>
+                            <td>
+                                ${escaparHTML(
+                                    reserva?.nombre || "-"
+                                )}
+                            </td>
 
-                    <td>
-                        ${c.cantidad}
-                    </td>
+                            <td>
+                                ${escaparHTML(
+                                    consumo.producto || "-"
+                                )}
+                            </td>
 
-                    <td>
-                        ${dinero(c.precio)}
-                    </td>
+                            <td>
+                                ${consumo.cantidad}
+                            </td>
 
-                    <td>
-                        ${dinero(c.total)}
-                    </td>
+                            <td>
+                                ${dinero(
+                                    consumo.total
+                                )}
+                            </td>
 
-                </tr>
-            `;
+                            <td>
+                                ${
+                                    reserva?.estado ===
+                                    "OCUPADA"
+                                        ?
+                                        `
+                                        <button
+                                            class="btn-tabla peligro"
+                                            onclick="eliminarConsumo(${consumo.id})"
+                                        >
+                                            Eliminar
+                                        </button>
+                                        `
+                                        :
+                                        "-"
+                                }
+                            </td>
 
-        }).join("");
+                        </tr>
+                    `;
+                }
+            )
+            .join("");
 }
-
-
 /* =========================================================
-   CUENTA
+   CUENTA DE LA HABITACIÓN
 ========================================================= */
 
-function obtenerReservaOcupadaHabitacion(
-    habitacionId
-) {
+function obtenerCuentaReserva(reservaId) {
 
-    return reservas.find(r =>
-
-        Number(r.habitacionId) ===
-            Number(habitacionId)
-
-        &&
-
-        r.estado === "OCUPADA"
+    const reserva = reservas.find(
+        r => Number(r.id) === Number(reservaId)
     );
-}
-
-
-function abrirCuentaPorHabitacion(
-    habitacionId
-) {
-
-    const reserva =
-        obtenerReservaOcupadaHabitacion(
-            habitacionId
-        );
-
-    if (!reserva) {
-
-        alert(
-            "No hay una estadía activa."
-        );
-
-        return;
-    }
-
-    abrirCuenta(
-        reserva.id
-    );
-}
-
-
-function obtenerCuentaReserva(
-    reservaId
-) {
-
-    const reserva =
-        reservas.find(
-            r =>
-                Number(r.id) ===
-                Number(reservaId)
-        );
 
     if (!reserva) {
         return null;
     }
 
-    const listaConsumos =
+    const consumosReserva = consumos.filter(
+        c => Number(c.reservaId) === Number(reservaId)
+    );
+
+    const pagosReserva = pagos.filter(
+        p => Number(p.reservaId) === Number(reservaId)
+    );
+
+    const totalHabitacion =
+        Number(reserva.total || 0);
+
+    const totalConsumos =
+        consumosReserva.reduce(
+            (total, consumo) =>
+                total + Number(consumo.total || 0),
+            0
+        );
+
+    const totalGeneral =
+        totalHabitacion + totalConsumos;
+
+    const totalPagado =
+        pagosReserva.reduce(
+            (total, pago) =>
+                total + Number(pago.monto || 0),
+            0
+        );
+
+    const saldo =
+        Math.max(
+            0,
+            totalGeneral - totalPagado
+        );
+
+    return {
+        reserva,
+        consumosReserva,
+        pagosReserva,
+        totalHabitacion,
+        totalConsumos,
+        totalGeneral,
+        totalPagado,
+        saldo
+    };
+}
+
+
+/* =========================================================
+   ABRIR CUENTA
+========================================================= */
+
+function abrirCuenta(reservaId) {
+
+    const cuenta =
+        obtenerCuentaReserva(reservaId);
+
+    if (!cuenta) {
+
+        return notificar(
+            "No se encontró la cuenta."
+        );
+    }
+
+    ultimaReservaCuenta =
+        Number(reservaId);
+
+    const reserva =
+        cuenta.reserva;
+
+    const habitacion =
+        habitaciones.find(
+            h =>
+                Number(h.id) ===
+                Number(reserva.habitacionId)
+        );
+
+
+    const titulo =
+        document.getElementById(
+            "cuentaTitulo"
+        );
+
+    const huesped =
+        document.getElementById(
+            "cuentaHuesped"
+        );
+
+    const estadia =
+        document.getElementById(
+            "cuentaEstadia"
+        );
+
+    const alojamiento =
+        document.getElementById(
+            "cuentaAlojamiento"
+        );
+
+    const consumo =
+        document.getElementById(
+            "cuentaConsumos"
+        );
+
+    const total =
+        document.getElementById(
+            "cuentaTotal"
+        );
+
+    const pagado =
+        document.getElementById(
+            "cuentaPagado"
+        );
+
+    const saldo =
+        document.getElementById(
+            "cuentaSaldo"
+        );
+
+
+    if (titulo) {
+
+        titulo.textContent =
+            `Cuenta - Habitación ${habitacion?.numero || "-"}`;
+    }
+
+
+    if (huesped) {
+
+        huesped.textContent =
+            reserva.nombre;
+    }
+
+
+    if (estadia) {
+
+        if (
+            reserva.tipoEstadia ===
+            "HORAS"
+        ) {
+
+            estadia.textContent =
+                `Por horas - ${reserva.horas} hora(s)`;
+
+        } else {
+
+            estadia.textContent =
+                `Por día - ${reserva.noches || 1} día(s)`;
+        }
+    }
+
+
+    if (alojamiento) {
+
+        alojamiento.textContent =
+            dinero(
+                cuenta.totalHabitacion
+            );
+    }
+
+
+    if (consumo) {
+
+        consumo.textContent =
+            dinero(
+                cuenta.totalConsumos
+            );
+    }
+
+
+    if (total) {
+
+        total.textContent =
+            dinero(
+                cuenta.totalGeneral
+            );
+    }
+
+
+    if (pagado) {
+
+        pagado.textContent =
+            dinero(
+                cuenta.totalPagado
+            );
+    }
+
+
+    if (saldo) {
+
+        saldo.textContent =
+            dinero(
+                cuenta.saldo
+            );
+    }
+
+
+    renderConsumosCuenta(
+        reservaId
+    );
+
+    renderPagosCuenta(
+        reservaId
+    );
+
+    abrirModal(
+        "modalCuenta"
+    );
+}
+
+
+/* =========================================================
+   CONSUMOS DENTRO DE CUENTA
+========================================================= */
+
+function renderConsumosCuenta(
+    reservaId
+) {
+
+    const tabla =
+        document.getElementById(
+            "tablaConsumosCuenta"
+        );
+
+    if (!tabla) {
+        return;
+    }
+
+
+    const lista =
         consumos.filter(
             c =>
                 Number(c.reservaId) ===
                 Number(reservaId)
         );
 
-    const listaPagos =
-        pagos.filter(
-            p =>
-                Number(p.reservaId) ===
-                Number(reservaId)
-        );
 
-    const hospedaje =
-        Number(reserva.total || 0);
+    if (!lista.length) {
 
-    const totalConsumos =
-        listaConsumos.reduce(
-            (total, c) =>
-                total + Number(c.total),
-            0
-        );
+        tabla.innerHTML = `
+            <tr>
+                <td
+                    colspan="4"
+                    class="sin-datos"
+                >
+                    Sin consumos.
+                </td>
+            </tr>
+        `;
 
-    const totalPagos =
-        listaPagos.reduce(
-            (total, p) =>
-                total + Number(p.monto),
-            0
-        );
-
-    const total =
-        hospedaje +
-        totalConsumos;
-
-    const saldo =
-        total -
-        totalPagos;
-
-    return {
-
-        reserva,
-
-        listaConsumos,
-
-        listaPagos,
-
-        hospedaje,
-
-        totalConsumos,
-
-        totalPagos,
-
-        total,
-
-        saldo
-    };
-}
-
-
-function abrirCuenta(reservaId) {
-
-    const cuenta =
-        obtenerCuentaReserva(
-            reservaId
-        );
-
-    if (!cuenta) {
         return;
     }
 
-    ultimaReservaCuenta =
-        reservaId;
 
-    const habitacion =
-        habitaciones.find(
-            h =>
-                Number(h.id) ===
-                Number(cuenta.reserva.habitacionId)
-        );
+    tabla.innerHTML =
+        lista.map(
+            consumo => `
+                <tr>
 
-    let productosHTML = "";
+                    <td>
+                        ${escaparHTML(
+                            consumo.producto || "-"
+                        )}
+                    </td>
 
-    if (
-        cuenta.listaConsumos.length
-    ) {
+                    <td>
+                        ${consumo.cantidad}
+                    </td>
 
-        productosHTML = `
-            <div style="margin-top:15px;">
-                <strong>Consumos</strong>
-            </div>
+                    <td>
+                        ${dinero(
+                            consumo.precio
+                        )}
+                    </td>
 
-            ${cuenta.listaConsumos.map(c => `
+                    <td>
+                        ${dinero(
+                            consumo.total
+                        )}
+                    </td>
 
-                <div class="cuenta-linea">
-
-                    <span>
-                        ${c.cantidad} x
-                        ${escaparHTML(c.producto)}
-                    </span>
-
-                    <strong>
-                        ${dinero(c.total)}
-                    </strong>
-
-                </div>
-
-            `).join("")}
-        `;
-    }
-
-    document.getElementById(
-        "detalleCuenta"
-    ).innerHTML = `
-
-        <div class="cuenta-cabecera">
-
-            <h3>
-                Habitación
-                ${escaparHTML(habitacion?.numero || "-")}
-            </h3>
-
-            <p>
-                Huésped:
-                ${escaparHTML(cuenta.reserva.nombre)}
-            </p>
-
-            <p>
-                ${formatearFecha(cuenta.reserva.entrada)}
-                -
-                ${formatearFecha(cuenta.reserva.salida)}
-            </p>
-
-        </div>
-
-
-        <div class="cuenta-linea">
-
-            <span>
-                Hospedaje
-            </span>
-
-            <strong>
-                ${dinero(cuenta.hospedaje)}
-            </strong>
-
-        </div>
-
-        ${productosHTML}
-
-
-        <div class="cuenta-linea total">
-
-            <span>
-                Total consumos
-            </span>
-
-            <strong>
-                ${dinero(cuenta.totalConsumos)}
-            </strong>
-
-        </div>
-
-
-        <div class="cuenta-linea total">
-
-            <span>
-                Total cuenta
-            </span>
-
-            <strong>
-                ${dinero(cuenta.total)}
-            </strong>
-
-        </div>
-
-
-        <div class="cuenta-linea">
-
-            <span>
-                Pagado
-            </span>
-
-            <strong>
-                ${dinero(cuenta.totalPagos)}
-            </strong>
-
-        </div>
-
-
-        <div class="cuenta-linea saldo">
-
-            <span>
-                Saldo
-            </span>
-
-            <strong>
-                ${dinero(Math.max(0, cuenta.saldo))}
-            </strong>
-
-        </div>
-
-
-        <div class="cuenta-acciones">
-
-            <button
-                class="btn-principal"
-                onclick="abrirPago(${reservaId})"
-            >
-                💰 Registrar pago
-            </button>
-
-
-            <button
-                class="btn-secundario"
-                onclick="realizarCheckOut(${reservaId})"
-            >
-                Check-out
-            </button>
-
-        </div>
-    `;
-
-    abrirModal("modalCuenta");
+                </tr>
+            `
+        ).join("");
 }
 
 
 /* =========================================================
-   PAGOS
+   PAGOS DENTRO DE CUENTA
 ========================================================= */
 
-function abrirPago(reservaId) {
+function renderPagosCuenta(
+    reservaId
+) {
 
-    const cuenta =
-        obtenerCuentaReserva(
-            reservaId
+    const tabla =
+        document.getElementById(
+            "tablaPagosCuenta"
         );
 
-    if (!cuenta) {
+    if (!tabla) {
         return;
     }
 
-    if (
-        cuenta.saldo <= 0.009
-    ) {
 
-        alert(
-            "La cuenta ya está pagada."
-        );
+    const lista =
+        pagos
+            .filter(
+                p =>
+                    Number(p.reservaId) ===
+                    Number(reservaId)
+            )
+            .sort(
+                (a, b) =>
+                    new Date(b.fecha) -
+                    new Date(a.fecha)
+            );
+
+
+    if (!lista.length) {
+
+        tabla.innerHTML = `
+            <tr>
+                <td
+                    colspan="3"
+                    class="sin-datos"
+                >
+                    Sin pagos registrados.
+                </td>
+            </tr>
+        `;
 
         return;
     }
 
-    document.getElementById(
-        "pagoReservaId"
-    ).value = reservaId;
 
-    document.getElementById(
-        "pagoSaldo"
-    ).textContent =
-        dinero(cuenta.saldo);
+    tabla.innerHTML =
+        lista.map(
+            pago => `
+                <tr>
 
-    document.getElementById(
-        "pagoMonto"
-    ).value =
-        cuenta.saldo.toFixed(2);
+                    <td>
+                        ${formatearFechaHora(
+                            pago.fecha
+                        )}
+                    </td>
 
-    document.getElementById(
-        "pagoMetodo"
-    ).value = "EFECTIVO";
+                    <td>
+                        ${escaparHTML(
+                            pago.metodo
+                        )}
+                    </td>
 
-    cerrarModal("modalCuenta");
+                    <td>
+                        ${dinero(
+                            pago.monto
+                        )}
+                    </td>
 
-    abrirModal("modalPago");
+                </tr>
+            `
+        ).join("");
 }
 
+
+/* =========================================================
+   ABRIR PAGO
+========================================================= */
+
+function abrirPago(
+    reservaId = null
+) {
+
+    const id =
+        Number(
+            reservaId ||
+            ultimaReservaCuenta
+        );
+
+
+    if (!id) {
+
+        return notificar(
+            "Primero selecciona una cuenta."
+        );
+    }
+
+
+    const cuenta =
+        obtenerCuentaReserva(id);
+
+
+    if (!cuenta) {
+
+        return notificar(
+            "Cuenta no encontrada."
+        );
+    }
+
+
+    if (
+        cuenta.saldo <= 0
+    ) {
+
+        return notificar(
+            "La cuenta ya está pagada."
+        );
+    }
+
+
+    const reservaInput =
+        document.getElementById(
+            "pagoReservaId"
+        );
+
+    const monto =
+        document.getElementById(
+            "pagoMonto"
+        );
+
+    const metodo =
+        document.getElementById(
+            "pagoMetodo"
+        );
+
+
+    if (reservaInput) {
+
+        reservaInput.value =
+            id;
+    }
+
+
+    if (monto) {
+
+        monto.value =
+            cuenta.saldo.toFixed(2);
+    }
+
+
+    if (metodo) {
+
+        metodo.value =
+            "EFECTIVO";
+    }
+
+
+    abrirModal(
+        "modalPago"
+    );
+}
+
+
+/* =========================================================
+   CONFIRMAR PAGO
+========================================================= */
 
 function confirmarPago() {
 
@@ -3970,61 +6397,83 @@ function confirmarPago() {
         Number(
             document.getElementById(
                 "pagoReservaId"
-            ).value
+            )?.value ||
+            ultimaReservaCuenta
         );
+
 
     const monto =
         Number(
             document.getElementById(
                 "pagoMonto"
-            ).value
+            )?.value
         );
+
 
     const metodo =
         document.getElementById(
             "pagoMetodo"
-        ).value;
+        )?.value;
+
+
+    if (!reservaId) {
+
+        return notificar(
+            "No se encontró la reserva."
+        );
+    }
+
+
+    if (
+        !Number.isFinite(monto) ||
+        monto <= 0
+    ) {
+
+        return notificar(
+            "Ingresa un monto válido."
+        );
+    }
+
+
+    if (!metodo) {
+
+        return notificar(
+            "Selecciona un método de pago."
+        );
+    }
+
 
     const cuenta =
         obtenerCuentaReserva(
             reservaId
         );
 
+
     if (!cuenta) {
-        return;
-    }
 
-    if (monto <= 0) {
-
-        notificar(
-            "Ingresa un monto válido."
+        return notificar(
+            "Cuenta no encontrada."
         );
-
-        return;
     }
+
 
     if (
         monto >
-        cuenta.saldo + 0.009
+        cuenta.saldo + 0.01
     ) {
 
-        alert(
-            "El monto no puede ser mayor al saldo pendiente."
+        return notificar(
+            `El saldo pendiente es ${dinero(cuenta.saldo)}.`
         );
-
-        return;
     }
 
-    const habitacion =
-        habitaciones.find(
-            h =>
-                Number(h.id) ===
-                Number(cuenta.reserva.habitacionId)
-        );
 
-    const pago = {
+    pagos.push({
 
-        id: generarId(pagos),
+        id:
+            generarId(
+                pagos
+            ),
 
         reservaId,
 
@@ -4034,255 +6483,355 @@ function confirmarPago() {
 
         fecha:
             new Date().toISOString()
-    };
+    });
 
-    pagos.push(pago);
-
-    registrarMovimiento(
-        "PAGO",
-        habitacion?.numero || "-",
-        `${cuenta.reserva.nombre} pagó ${dinero(monto)} mediante ${metodo}.`
-    );
-
-    guardarDatos();
-
-    cerrarModal("modalPago");
-
-    renderTodo();
-
-    mostrarComprobante(
-        pago.id
-    );
-
-    notificar(
-        "Pago registrado."
-    );
-}
-
-
-/* =========================================================
-   COMPROBANTE
-========================================================= */
-
-function mostrarComprobante(
-    pagoId
-) {
-
-    const pago =
-        pagos.find(
-            p =>
-                Number(p.id) ===
-                Number(pagoId)
-        );
-
-    if (!pago) {
-        return;
-    }
 
     const reserva =
         reservas.find(
             r =>
                 Number(r.id) ===
-                Number(pago.reservaId)
+                reservaId
         );
 
-    if (!reserva) {
-        return;
-    }
 
     const habitacion =
         habitaciones.find(
             h =>
                 Number(h.id) ===
-                Number(reserva.habitacionId)
+                Number(
+                    reserva?.habitacionId
+                )
         );
 
-    document.getElementById(
-        "contenidoComprobante"
-    ).innerHTML = `
 
-        <div class="comprobante">
-
-            <div class="comprobante-encabezado">
-
-                <h2>
-                    GRAND HOTEL
-                </h2>
-
-                <p>
-                    COMPROBANTE INTERNO DE PAGO
-                </p>
-
-                <p>
-                    No es comprobante electrónico SUNAT
-                </p>
-
-            </div>
+    registrarMovimiento(
+        "PAGO",
+        habitacion?.numero || "",
+        `${metodo} - ${dinero(monto)} - ${reserva?.nombre || ""}`
+    );
 
 
-            <div class="comprobante-dato">
-
-                <span>N.º operación</span>
-
-                <strong>
-                    ${pago.id}
-                </strong>
-
-            </div>
+    guardarDatos();
 
 
-            <div class="comprobante-dato">
-
-                <span>Fecha</span>
-
-                <strong>
-                    ${formatearFechaHora(pago.fecha)}
-                </strong>
-
-            </div>
+    cerrarModal(
+        "modalPago"
+    );
 
 
-            <div class="comprobante-dato">
-
-                <span>Huésped</span>
-
-                <strong>
-                    ${escaparHTML(reserva.nombre)}
-                </strong>
-
-            </div>
+    renderTodo();
 
 
-            <div class="comprobante-dato">
-
-                <span>DNI</span>
-
-                <strong>
-                    ${escaparHTML(reserva.dni)}
-                </strong>
-
-            </div>
+    abrirCuenta(
+        reservaId
+    );
 
 
-            <div class="comprobante-dato">
-
-                <span>Habitación</span>
-
-                <strong>
-                    ${escaparHTML(habitacion?.numero || "-")}
-                </strong>
-
-            </div>
-
-
-            <div class="comprobante-dato">
-
-                <span>Método</span>
-
-                <strong>
-                    ${pago.metodo}
-                </strong>
-
-            </div>
-
-
-            <div class="comprobante-total">
-
-                <span>PAGO</span>
-
-                <span>
-                    ${dinero(pago.monto)}
-                </span>
-
-            </div>
-
-        </div>
-    `;
-
-    abrirModal(
-        "modalComprobante"
+    notificar(
+        `Pago de ${dinero(monto)} registrado.`
     );
 }
 
 
-function imprimirComprobante() {
+/* =========================================================
+   PAGAR SALDO COMPLETO
+========================================================= */
 
-    window.print();
+function pagarSaldoCompleto() {
+
+    if (!ultimaReservaCuenta) {
+
+        return notificar(
+            "No hay una cuenta seleccionada."
+        );
+    }
+
+
+    const cuenta =
+        obtenerCuentaReserva(
+            ultimaReservaCuenta
+        );
+
+
+    if (!cuenta) {
+
+        return;
+    }
+
+
+    if (
+        cuenta.saldo <= 0
+    ) {
+
+        return notificar(
+            "La cuenta ya está pagada."
+        );
+    }
+
+
+    abrirPago(
+        ultimaReservaCuenta
+    );
 }
 
 
 /* =========================================================
-   CHECK-OUT
+   CHECKOUT
 ========================================================= */
 
 function realizarCheckOut(
-    reservaId
+    reservaId = null
 ) {
+
+    const id =
+        Number(
+            reservaId ||
+            ultimaReservaCuenta
+        );
+
+
+    if (!id) {
+
+        return notificar(
+            "No se encontró la estadía."
+        );
+    }
+
+
+    const reserva =
+        reservas.find(
+            r =>
+                Number(r.id) === id
+        );
+
+
+    if (!reserva) {
+
+        return notificar(
+            "Reserva no encontrada."
+        );
+    }
+
+
+    if (
+        reserva.estado !==
+        "OCUPADA"
+    ) {
+
+        return notificar(
+            "Esta habitación no tiene una estadía activa."
+        );
+    }
+
 
     const cuenta =
         obtenerCuentaReserva(
-            reservaId
+            id
         );
+
 
     if (!cuenta) {
+
         return;
     }
+
 
     if (
-        cuenta.saldo > 0.009
+        cuenta.saldo > 0.01
     ) {
 
-        alert(
-            `No puedes realizar el check-out. Falta pagar ${dinero(cuenta.saldo)}.`
+        return notificar(
+            `Todavía falta pagar ${dinero(cuenta.saldo)}.`
         );
-
-        return;
     }
 
-    const confirmar =
-        confirm(
-            `¿Realizar check-out de ${cuenta.reserva.nombre}?`
+
+    const habitacion =
+        habitaciones.find(
+            h =>
+                Number(h.id) ===
+                Number(
+                    reserva.habitacionId
+                )
         );
+
+
+    const confirmar =
+        window.confirm(
+            `¿Realizar checkout de ${reserva.nombre} en la habitación ${habitacion?.numero || "-"}?`
+        );
+
 
     if (!confirmar) {
         return;
     }
 
-    cuenta.reserva.estado =
+
+    reserva.estado =
         "FINALIZADA";
 
-    const habitacion =
-        habitaciones.find(
-            h =>
-                Number(h.id) ===
-                Number(cuenta.reserva.habitacionId)
-        );
+
+    reserva.checkoutEn =
+        new Date().toISOString();
+
 
     if (habitacion) {
+
         habitacion.estado =
             "LIMPIEZA";
     }
 
+
     registrarMovimiento(
-        "CHECK-OUT",
-        habitacion?.numero || "-",
-        `${cuenta.reserva.nombre} finalizó su estadía. Habitación enviada a limpieza.`
+        "CHECKOUT",
+        habitacion?.numero || "",
+        `${reserva.nombre} - Total ${dinero(cuenta.totalGeneral)}`
     );
+
 
     guardarDatos();
 
-    cerrarModal("modalCuenta");
+
+    cerrarModal(
+        "modalCuenta"
+    );
+
+
+    ultimaReservaCuenta =
+        null;
+
 
     renderTodo();
 
+
     notificar(
-        "Check-out realizado. Habitación en limpieza."
+        `Checkout realizado. Habitación ${habitacion?.numero || ""} pasó a LIMPIEZA.`
     );
 }
 
 
 /* =========================================================
+   AGREGAR CONSUMO DESDE CUENTA
+========================================================= */
+
+function agregarConsumoDesdeCuenta() {
+
+    if (!ultimaReservaCuenta) {
+
+        return notificar(
+            "Selecciona una cuenta."
+        );
+    }
+
+
+    abrirModalConsumo(
+        ultimaReservaCuenta
+    );
+}
+
+
+/* =========================================================
+   ACTUALIZAR CUENTA DESPUÉS DE CAMBIOS
+========================================================= */
+
+function actualizarCuentaAbierta() {
+
+    if (!ultimaReservaCuenta) {
+        return;
+    }
+
+
+    const reserva =
+        reservas.find(
+            r =>
+                Number(r.id) ===
+                Number(
+                    ultimaReservaCuenta
+                )
+        );
+
+
+    if (!reserva) {
+
+        ultimaReservaCuenta =
+            null;
+
+        return;
+    }
+
+
+    abrirCuenta(
+        ultimaReservaCuenta
+    );
+}
+/* =========================================================
    CAJA DIARIA
+========================================================= */
+
+function obtenerAperturaCaja(fecha) {
+
+    return Number(
+        aperturasCaja[fecha] || 0
+    );
+}
+
+
+/* =========================================================
+   GUARDAR MONTO INICIAL DE CAJA
+========================================================= */
+
+function guardarAperturaCaja() {
+
+    const fecha =
+        document.getElementById(
+            "fechaCaja"
+        )?.value ||
+        obtenerFechaHoy();
+
+
+    const monto =
+        Number(
+            document.getElementById(
+                "montoAperturaCaja"
+            )?.value
+        );
+
+
+    if (
+        !Number.isFinite(monto) ||
+        monto < 0
+    ) {
+
+        return notificar(
+            "Ingresa un monto inicial válido."
+        );
+    }
+
+
+    aperturasCaja[fecha] =
+        monto;
+
+
+    registrarMovimiento(
+        "APERTURA DE CAJA",
+        fecha,
+        `Monto inicial: ${dinero(monto)}`
+    );
+
+
+    guardarDatos();
+
+    renderCaja();
+
+
+    notificar(
+        `Caja iniciada con ${dinero(monto)}.`
+    );
+}
+
+
+/* =========================================================
+   RENDER CAJA
 ========================================================= */
 
 function renderCaja() {
@@ -4293,13 +6842,15 @@ function renderCaja() {
         )?.value ||
         obtenerFechaHoy();
 
-    const pagosDia =
+
+    const pagosFecha =
         pagos.filter(
-            p =>
-                obtenerFechaISORegistro(
-                    p.fecha
+            pago =>
+                fechaLocalYYYYMMDD(
+                    pago.fecha
                 ) === fecha
         );
+
 
     const totales = {
 
@@ -4312,65 +6863,217 @@ function renderCaja() {
         TARJETA: 0
     };
 
-    pagosDia.forEach(p => {
 
-        if (
-            totales[p.metodo] !==
-            undefined
-        ) {
+    pagosFecha.forEach(
+        pago => {
 
-            totales[p.metodo] +=
-                Number(p.monto);
+            const metodo =
+                String(
+                    pago.metodo || ""
+                ).toUpperCase();
+
+
+            if (
+                Object.prototype.hasOwnProperty.call(
+                    totales,
+                    metodo
+                )
+            ) {
+
+                totales[metodo] +=
+                    Number(
+                        pago.monto || 0
+                    );
+            }
         }
-    });
+    );
 
-    document.getElementById(
-        "cajaEfectivo"
-    ).textContent =
-        dinero(totales.EFECTIVO);
 
-    document.getElementById(
-        "cajaYape"
-    ).textContent =
-        dinero(totales.YAPE);
+    const montoInicial =
+        obtenerAperturaCaja(
+            fecha
+        );
 
-    document.getElementById(
-        "cajaPlin"
-    ).textContent =
-        dinero(totales.PLIN);
 
-    document.getElementById(
-        "cajaTarjeta"
-    ).textContent =
-        dinero(totales.TARJETA);
+    const efectivoEsperado =
+        montoInicial +
+        totales.EFECTIVO;
 
-    const total =
-        Object.values(totales)
-            .reduce(
-                (a, b) => a + b,
-                0
+
+    const totalVentas =
+        totales.EFECTIVO +
+        totales.YAPE +
+        totales.PLIN +
+        totales.TARJETA;
+
+
+    const inputApertura =
+        document.getElementById(
+            "montoAperturaCaja"
+        );
+
+
+    if (inputApertura) {
+
+        inputApertura.value =
+            montoInicial.toFixed(2);
+    }
+
+
+    const cajaMontoInicial =
+        document.getElementById(
+            "cajaMontoInicial"
+        );
+
+
+    if (cajaMontoInicial) {
+
+        cajaMontoInicial.textContent =
+            dinero(
+                montoInicial
             );
+    }
 
-    document.getElementById(
-        "cajaTotal"
-    ).textContent =
-        dinero(total);
+
+    const cajaEfectivo =
+        document.getElementById(
+            "cajaEfectivo"
+        );
+
+
+    if (cajaEfectivo) {
+
+        cajaEfectivo.textContent =
+            dinero(
+                totales.EFECTIVO
+            );
+    }
+
+
+    const cajaYape =
+        document.getElementById(
+            "cajaYape"
+        );
+
+
+    if (cajaYape) {
+
+        cajaYape.textContent =
+            dinero(
+                totales.YAPE
+            );
+    }
+
+
+    const cajaPlin =
+        document.getElementById(
+            "cajaPlin"
+        );
+
+
+    if (cajaPlin) {
+
+        cajaPlin.textContent =
+            dinero(
+                totales.PLIN
+            );
+    }
+
+
+    const cajaTarjeta =
+        document.getElementById(
+            "cajaTarjeta"
+        );
+
+
+    if (cajaTarjeta) {
+
+        cajaTarjeta.textContent =
+            dinero(
+                totales.TARJETA
+            );
+    }
+
+
+    const cajaTotal =
+        document.getElementById(
+            "cajaTotal"
+        );
+
+
+    if (cajaTotal) {
+
+        cajaTotal.textContent =
+            dinero(
+                totalVentas
+            );
+    }
+
+
+    const cajaEfectivoEsperado =
+        document.getElementById(
+            "cajaEfectivoEsperado"
+        );
+
+
+    if (cajaEfectivoEsperado) {
+
+        cajaEfectivoEsperado.textContent =
+            dinero(
+                efectivoEsperado
+            );
+    }
+
+
+    renderTablaCaja(
+        pagosFecha
+    );
+}
+
+
+/* =========================================================
+   TABLA DE MOVIMIENTOS DE CAJA
+========================================================= */
+
+function renderTablaCaja(
+    pagosFecha
+) {
 
     const tabla =
         document.getElementById(
             "tablaCaja"
         );
 
+
     if (!tabla) {
+
         return;
     }
 
-    if (!pagosDia.length) {
+
+    const lista =
+        pagosFecha
+            .slice()
+            .sort(
+                (a, b) =>
+                    new Date(
+                        b.fecha
+                    ) -
+                    new Date(
+                        a.fecha
+                    )
+            );
+
+
+    if (!lista.length) {
 
         tabla.innerHTML = `
             <tr>
-                <td colspan="6">
-                    No hay pagos para esta fecha.
+                <td
+                    colspan="6"
+                    class="sin-datos"
+                >
+                    No hay pagos registrados en esta fecha.
                 </td>
             </tr>
         `;
@@ -4378,79 +7081,203 @@ function renderCaja() {
         return;
     }
 
+
     tabla.innerHTML =
-        [...pagosDia]
-            .sort(
-                (a, b) =>
-                    new Date(b.fecha) -
-                    new Date(a.fecha)
-            )
-            .map(p => {
+        lista.map(
+            pago => {
 
                 const reserva =
                     reservas.find(
                         r =>
                             Number(r.id) ===
-                            Number(p.reservaId)
+                            Number(
+                                pago.reservaId
+                            )
                     );
+
 
                 const habitacion =
                     habitaciones.find(
                         h =>
                             Number(h.id) ===
-                            Number(reserva?.habitacionId)
+                            Number(
+                                reserva?.habitacionId
+                            )
                     );
 
-                return `
 
+                return `
                     <tr>
 
                         <td>
-                            ${new Date(p.fecha).toLocaleTimeString(
-                                "es-PE",
-                                {
-                                    hour: "2-digit",
-                                    minute: "2-digit"
-                                }
+                            ${formatearFechaHora(
+                                pago.fecha
                             )}
                         </td>
 
                         <td>
-                            ${escaparHTML(habitacion?.numero || "-")}
+                            Hab.
+                            ${escaparHTML(
+                                habitacion?.numero || "-"
+                            )}
                         </td>
 
                         <td>
-                            ${escaparHTML(reserva?.nombre || "-")}
+                            ${escaparHTML(
+                                reserva?.nombre || "-"
+                            )}
                         </td>
 
                         <td>
-                            ${p.metodo}
+                            ${escaparHTML(
+                                pago.metodo
+                            )}
                         </td>
 
                         <td>
-                            ${dinero(p.monto)}
+                            ${dinero(
+                                pago.monto
+                            )}
                         </td>
 
                         <td>
-
-                            <button
-                                class="tabla-boton azul"
-                                onclick="mostrarComprobante(${p.id})"
-                            >
-                                Ver
-                            </button>
-
+                            Pago
                         </td>
 
                     </tr>
                 `;
-
-            }).join("");
+            }
+        ).join("");
 }
 
 
 /* =========================================================
-   REPORTES
+   CAMBIAR FECHA DE CAJA
+========================================================= */
+
+function cambiarFechaCaja() {
+
+    renderCaja();
+}
+
+
+/* =========================================================
+   RESUMEN DE CAJA
+========================================================= */
+
+function obtenerResumenCaja(
+    fecha
+) {
+
+    const pagosFecha =
+        pagos.filter(
+            pago =>
+                fechaLocalYYYYMMDD(
+                    pago.fecha
+                ) === fecha
+        );
+
+
+    let efectivo = 0;
+    let yape = 0;
+    let plin = 0;
+    let tarjeta = 0;
+
+
+    pagosFecha.forEach(
+        pago => {
+
+            const metodo =
+                String(
+                    pago.metodo
+                ).toUpperCase();
+
+
+            if (
+                metodo ===
+                "EFECTIVO"
+            ) {
+
+                efectivo +=
+                    Number(
+                        pago.monto
+                    );
+            }
+
+
+            if (
+                metodo ===
+                "YAPE"
+            ) {
+
+                yape +=
+                    Number(
+                        pago.monto
+                    );
+            }
+
+
+            if (
+                metodo ===
+                "PLIN"
+            ) {
+
+                plin +=
+                    Number(
+                        pago.monto
+                    );
+            }
+
+
+            if (
+                metodo ===
+                "TARJETA"
+            ) {
+
+                tarjeta +=
+                    Number(
+                        pago.monto
+                    );
+            }
+        }
+    );
+
+
+    const apertura =
+        obtenerAperturaCaja(
+            fecha
+        );
+
+
+    return {
+
+        fecha,
+
+        apertura,
+
+        efectivo,
+
+        yape,
+
+        plin,
+
+        tarjeta,
+
+        efectivoEsperado:
+            apertura +
+            efectivo,
+
+        ventas:
+            efectivo +
+            yape +
+            plin +
+            tarjeta
+    };
+}
+
+
+/* =========================================================
+   REPORTE POR FECHAS
 ========================================================= */
 
 function generarReporte() {
@@ -4458,127 +7285,371 @@ function generarReporte() {
     const desde =
         document.getElementById(
             "reporteDesde"
-        ).value;
+        )?.value;
+
 
     const hasta =
         document.getElementById(
             "reporteHasta"
-        ).value;
+        )?.value;
 
-    if (
-        !desde ||
-        !hasta
-    ) {
-
-        notificar(
-            "Selecciona las fechas."
-        );
-
-        return;
-    }
-
-    if (desde > hasta) {
-
-        alert(
-            "La fecha inicial no puede ser posterior a la fecha final."
-        );
-
-        return;
-    }
-
-    const pagosRango =
-        pagos.filter(p => {
-
-            const fecha =
-                obtenerFechaISORegistro(
-                    p.fecha
-                );
-
-            return (
-                fecha >= desde &&
-                fecha <= hasta
-            );
-        });
-
-    const reservasRango =
-        reservas.filter(r => {
-
-            const fecha =
-                obtenerFechaISORegistro(
-                    r.creadoEn
-                );
-
-            return (
-                fecha >= desde &&
-                fecha <= hasta
-            );
-        });
-
-    const consumosRango =
-        consumos.filter(c => {
-
-            const fecha =
-                obtenerFechaISORegistro(
-                    c.fecha
-                );
-
-            return (
-                fecha >= desde &&
-                fecha <= hasta
-            );
-        });
-
-    const ingresos =
-        pagosRango.reduce(
-            (total, p) =>
-                total + Number(p.monto),
-            0
-        );
-
-    const totalConsumos =
-        consumosRango.reduce(
-            (total, c) =>
-                total + Number(c.total),
-            0
-        );
-
-    const canceladas =
-        reservasRango.filter(
-            r =>
-                r.estado === "CANCELADA"
-        ).length;
-
-    document.getElementById(
-        "reporteIngresos"
-    ).textContent =
-        dinero(ingresos);
-
-    document.getElementById(
-        "reporteReservas"
-    ).textContent =
-        reservasRango.length;
-
-    document.getElementById(
-        "reporteConsumos"
-    ).textContent =
-        dinero(totalConsumos);
-
-    document.getElementById(
-        "reporteCanceladas"
-    ).textContent =
-        canceladas;
 
     const tabla =
         document.getElementById(
             "tablaReporte"
         );
 
-    if (!pagosRango.length) {
+
+    if (
+        !desde ||
+        !hasta
+    ) {
+
+        return notificar(
+            "Selecciona las fechas del reporte."
+        );
+    }
+
+
+    if (
+        desde >
+        hasta
+    ) {
+
+        return notificar(
+            "La fecha inicial no puede ser mayor que la fecha final."
+        );
+    }
+
+
+    const pagosFiltrados =
+        pagos.filter(
+            pago => {
+
+                const fecha =
+                    fechaLocalYYYYMMDD(
+                        pago.fecha
+                    );
+
+
+                return (
+                    fecha >= desde &&
+                    fecha <= hasta
+                );
+            }
+        );
+
+
+    let efectivo = 0;
+    let yape = 0;
+    let plin = 0;
+    let tarjeta = 0;
+
+
+    pagosFiltrados.forEach(
+        pago => {
+
+            const metodo =
+                String(
+                    pago.metodo
+                ).toUpperCase();
+
+
+            if (metodo === "EFECTIVO") {
+
+                efectivo +=
+                    Number(
+                        pago.monto
+                    );
+            }
+
+
+            if (metodo === "YAPE") {
+
+                yape +=
+                    Number(
+                        pago.monto
+                    );
+            }
+
+
+            if (metodo === "PLIN") {
+
+                plin +=
+                    Number(
+                        pago.monto
+                    );
+            }
+
+
+            if (metodo === "TARJETA") {
+
+                tarjeta +=
+                    Number(
+                        pago.monto
+                    );
+            }
+        }
+    );
+
+
+    const total =
+        efectivo +
+        yape +
+        plin +
+        tarjeta;
+
+
+    const elementoEfectivo =
+        document.getElementById(
+            "reporteEfectivo"
+        );
+
+
+    const elementoYape =
+        document.getElementById(
+            "reporteYape"
+        );
+
+
+    const elementoPlin =
+        document.getElementById(
+            "reportePlin"
+        );
+
+
+    const elementoTarjeta =
+        document.getElementById(
+            "reporteTarjeta"
+        );
+
+
+    const elementoTotal =
+        document.getElementById(
+            "reporteTotal"
+        );
+
+
+    if (elementoEfectivo) {
+
+        elementoEfectivo.textContent =
+            dinero(
+                efectivo
+            );
+    }
+
+
+    if (elementoYape) {
+
+        elementoYape.textContent =
+            dinero(
+                yape
+            );
+    }
+
+
+    if (elementoPlin) {
+
+        elementoPlin.textContent =
+            dinero(
+                plin
+            );
+    }
+
+
+    if (elementoTarjeta) {
+
+        elementoTarjeta.textContent =
+            dinero(
+                tarjeta
+            );
+    }
+
+
+    if (elementoTotal) {
+
+        elementoTotal.textContent =
+            dinero(
+                total
+            );
+    }
+
+
+    if (!tabla) {
+
+        return;
+    }
+
+
+    if (!pagosFiltrados.length) {
 
         tabla.innerHTML = `
             <tr>
-                <td colspan="5">
-                    No hay pagos en este rango.
+                <td
+                    colspan="6"
+                    class="sin-datos"
+                >
+                    No hay movimientos en este periodo.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+
+    tabla.innerHTML =
+        pagosFiltrados
+            .slice()
+            .sort(
+                (a, b) =>
+                    new Date(
+                        b.fecha
+                    ) -
+                    new Date(
+                        a.fecha
+                    )
+            )
+            .map(
+                pago => {
+
+                    const reserva =
+                        reservas.find(
+                            r =>
+                                Number(r.id) ===
+                                Number(
+                                    pago.reservaId
+                                )
+                        );
+
+
+                    const habitacion =
+                        habitaciones.find(
+                            h =>
+                                Number(h.id) ===
+                                Number(
+                                    reserva?.habitacionId
+                                )
+                        );
+
+
+                    return `
+                        <tr>
+
+                            <td>
+                                ${formatearFechaHora(
+                                    pago.fecha
+                                )}
+                            </td>
+
+                            <td>
+                                Hab.
+                                ${escaparHTML(
+                                    habitacion?.numero || "-"
+                                )}
+                            </td>
+
+                            <td>
+                                ${escaparHTML(
+                                    reserva?.nombre || "-"
+                                )}
+                            </td>
+
+                            <td>
+                                ${escaparHTML(
+                                    pago.metodo
+                                )}
+                            </td>
+
+                            <td>
+                                ${dinero(
+                                    pago.monto
+                                )}
+                            </td>
+
+                            <td>
+                                PAGO
+                            </td>
+
+                        </tr>
+                    `;
+                }
+            )
+            .join("");
+}
+
+
+/* =========================================================
+   CONFIGURAR FECHAS DE REPORTE
+========================================================= */
+
+function configurarFechasReporte() {
+
+    const hoy =
+        obtenerFechaHoy();
+
+
+    const desde =
+        document.getElementById(
+            "reporteDesde"
+        );
+
+
+    const hasta =
+        document.getElementById(
+            "reporteHasta"
+        );
+
+
+    if (
+        desde &&
+        !desde.value
+    ) {
+
+        desde.value =
+            hoy;
+    }
+
+
+    if (
+        hasta &&
+        !hasta.value
+    ) {
+
+        hasta.value =
+            hoy;
+    }
+}
+/* =========================================================
+   HISTORIAL
+========================================================= */
+
+function renderHistorial() {
+
+    const tabla =
+        document.getElementById(
+            "tablaHistorial"
+        );
+
+    if (!tabla) {
+        return;
+    }
+
+    const lista =
+        historial
+            .slice()
+            .sort(
+                (a, b) =>
+                    new Date(b.fecha) -
+                    new Date(a.fecha)
+            );
+
+    if (!lista.length) {
+
+        tabla.innerHTML = `
+            <tr>
+                <td colspan="4" class="sin-datos">
+                    No hay movimientos registrados.
                 </td>
             </tr>
         `;
@@ -4587,122 +7658,387 @@ function generarReporte() {
     }
 
     tabla.innerHTML =
-        pagosRango
-            .sort(
-                (a, b) =>
-                    new Date(b.fecha) -
-                    new Date(a.fecha)
-            )
-            .map(p => {
+        lista.map(
+            movimiento => `
+                <tr>
+                    <td>
+                        ${formatearFechaHora(
+                            movimiento.fecha
+                        )}
+                    </td>
 
-                const reserva =
-                    reservas.find(
-                        r =>
-                            Number(r.id) ===
-                            Number(p.reservaId)
-                    );
+                    <td>
+                        ${escaparHTML(
+                            movimiento.tipo || "-"
+                        )}
+                    </td>
 
-                const habitacion =
-                    habitaciones.find(
-                        h =>
-                            Number(h.id) ===
-                            Number(reserva?.habitacionId)
-                    );
+                    <td>
+                        ${escaparHTML(
+                            movimiento.referencia || "-"
+                        )}
+                    </td>
 
-                return `
-
-                    <tr>
-
-                        <td>
-                            ${formatearFechaHora(p.fecha)}
-                        </td>
-
-                        <td>
-                            ${escaparHTML(reserva?.nombre || "-")}
-                        </td>
-
-                        <td>
-                            ${escaparHTML(habitacion?.numero || "-")}
-                        </td>
-
-                        <td>
-                            ${p.metodo}
-                        </td>
-
-                        <td>
-                            ${dinero(p.monto)}
-                        </td>
-
-                    </tr>
-                `;
-
-            }).join("");
+                    <td>
+                        ${escaparHTML(
+                            movimiento.detalle || "-"
+                        )}
+                    </td>
+                </tr>
+            `
+        ).join("");
 }
 
 
 /* =========================================================
-   RESUMEN
+   COMPROBANTE
 ========================================================= */
 
-function renderResumen() {
+function generarComprobante(
+    reservaId = null
+) {
 
-    const total =
-        habitaciones.length;
+    const id =
+        Number(
+            reservaId ||
+            ultimaReservaCuenta
+        );
 
-    const disponibles =
-        habitaciones.filter(
+    if (!id) {
+
+        return notificar(
+            "Selecciona una cuenta."
+        );
+    }
+
+    const cuenta =
+        obtenerCuentaReserva(id);
+
+    if (!cuenta) {
+
+        return notificar(
+            "Cuenta no encontrada."
+        );
+    }
+
+    const reserva =
+        cuenta.reserva;
+
+    const habitacion =
+        habitaciones.find(
             h =>
-                h.estado ===
-                "DISPONIBLE"
-        ).length;
+                Number(h.id) ===
+                Number(reserva.habitacionId)
+        );
 
-    const ocupadas =
-        habitaciones.filter(
-            h =>
-                h.estado ===
-                "OCUPADA"
-        ).length;
+    let detalleEstadia = "";
 
-    const limpieza =
-        habitaciones.filter(
-            h =>
-                h.estado ===
-                "LIMPIEZA"
-        ).length;
+    if (
+        reserva.tipoEstadia ===
+        "HORAS"
+    ) {
 
-    document.getElementById(
-        "totalHabitaciones"
-    ).textContent = total;
+        detalleEstadia =
+            `${reserva.horas} hora(s)`;
 
-    document.getElementById(
-        "totalDisponibles"
-    ).textContent =
-        disponibles;
+    } else {
 
-    document.getElementById(
-        "totalOcupadas"
-    ).textContent =
-        ocupadas;
+        detalleEstadia =
+            `${reserva.noches || 1} día(s)`;
+    }
 
-    document.getElementById(
-        "totalLimpieza"
-    ).textContent =
-        limpieza;
+    const ventana =
+        window.open(
+            "",
+            "_blank",
+            "width=800,height=700"
+        );
+
+    if (!ventana) {
+
+        return notificar(
+            "El navegador bloqueó el comprobante."
+        );
+    }
+
+    const consumosHTML =
+        cuenta.consumosReserva.length
+            ?
+            cuenta.consumosReserva.map(
+                consumo => `
+                    <tr>
+                        <td>
+                            ${escaparHTML(
+                                consumo.producto || "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${consumo.cantidad}
+                        </td>
+
+                        <td>
+                            ${dinero(
+                                consumo.precio
+                            )}
+                        </td>
+
+                        <td>
+                            ${dinero(
+                                consumo.total
+                            )}
+                        </td>
+                    </tr>
+                `
+            ).join("")
+            :
+            `
+                <tr>
+                    <td colspan="4">
+                        Sin consumos
+                    </td>
+                </tr>
+            `;
+
+    ventana.document.write(`
+        <!DOCTYPE html>
+        <html lang="es">
+
+        <head>
+            <meta charset="UTF-8">
+
+            <title>
+                Comprobante
+            </title>
+
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    padding: 35px;
+                    color: #222;
+                }
+
+                h1 {
+                    margin-bottom: 5px;
+                }
+
+                .datos {
+                    margin: 25px 0;
+                    line-height: 1.8;
+                }
+
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 20px;
+                }
+
+                th,
+                td {
+                    border: 1px solid #ccc;
+                    padding: 10px;
+                    text-align: left;
+                }
+
+                th {
+                    background: #f1f1f1;
+                }
+
+                .totales {
+                    margin-top: 25px;
+                    text-align: right;
+                    line-height: 1.8;
+                }
+
+                .total {
+                    font-size: 22px;
+                    font-weight: bold;
+                }
+
+                .pie {
+                    margin-top: 50px;
+                    text-align: center;
+                    color: #666;
+                }
+
+                @media print {
+                    button {
+                        display: none;
+                    }
+                }
+            </style>
+        </head>
+
+        <body>
+
+            <h1>
+                COMPROBANTE DE HOTEL
+            </h1>
+
+            <div>
+                Fecha:
+                ${new Date().toLocaleString("es-PE")}
+            </div>
+
+            <div class="datos">
+
+                <strong>Huésped:</strong>
+                ${escaparHTML(reserva.nombre)}
+                <br>
+
+                <strong>DNI:</strong>
+                ${escaparHTML(reserva.dni || "-")}
+                <br>
+
+                <strong>Habitación:</strong>
+                ${escaparHTML(habitacion?.numero || "-")}
+                <br>
+
+                <strong>Tipo:</strong>
+                ${escaparHTML(habitacion?.tipo || "-")}
+                <br>
+
+                <strong>Modalidad:</strong>
+                ${
+                    reserva.tipoEstadia === "HORAS"
+                        ? "POR HORAS"
+                        : "POR DÍA"
+                }
+                <br>
+
+                <strong>Estadía:</strong>
+                ${detalleEstadia}
+
+            </div>
+
+            <h3>
+                Detalle
+            </h3>
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Concepto</th>
+                        <th>Cantidad</th>
+                        <th>Precio</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    <tr>
+                        <td>
+                            Alojamiento
+                        </td>
+
+                        <td>
+                            ${
+                                reserva.tipoEstadia === "HORAS"
+                                    ? reserva.horas
+                                    : reserva.noches || 1
+                            }
+                        </td>
+
+                        <td>
+                            ${dinero(
+                                reserva.precioAplicado ||
+                                (
+                                    reserva.tipoEstadia === "HORAS"
+                                        ? habitacion?.precioHora
+                                        : habitacion?.precio
+                                )
+                            )}
+                        </td>
+
+                        <td>
+                            ${dinero(
+                                cuenta.totalHabitacion
+                            )}
+                        </td>
+                    </tr>
+
+                    ${consumosHTML}
+
+                </tbody>
+
+            </table>
+
+            <div class="totales">
+
+                <div>
+                    Alojamiento:
+                    <strong>
+                        ${dinero(
+                            cuenta.totalHabitacion
+                        )}
+                    </strong>
+                </div>
+
+                <div>
+                    Consumos:
+                    <strong>
+                        ${dinero(
+                            cuenta.totalConsumos
+                        )}
+                    </strong>
+                </div>
+
+                <div class="total">
+                    TOTAL:
+                    ${dinero(
+                        cuenta.totalGeneral
+                    )}
+                </div>
+
+                <div>
+                    Pagado:
+                    ${dinero(
+                        cuenta.totalPagado
+                    )}
+                </div>
+
+                <div>
+                    Saldo:
+                    ${dinero(
+                        cuenta.saldo
+                    )}
+                </div>
+
+            </div>
+
+            <div class="pie">
+                Gracias por su preferencia.
+            </div>
+
+            <br>
+
+            <button onclick="window.print()">
+                Imprimir comprobante
+            </button>
+
+        </body>
+
+        </html>
+    `);
+
+    ventana.document.close();
 }
 
 
 /* =========================================================
-   RESPALDO
+   CREAR RESPALDO
 ========================================================= */
 
 function crearRespaldo() {
 
     const respaldo = {
 
-        version: 2,
+        version: 3,
 
         sistema:
-            "Sistema de Gestión Hotelera",
+            "Sistema Hotel",
 
         creadoEn:
             new Date().toISOString(),
@@ -4717,7 +8053,9 @@ function crearRespaldo() {
 
         pagos,
 
-        historial
+        historial,
+
+        aperturasCaja
     };
 
     const contenido =
@@ -4737,18 +8075,20 @@ function crearRespaldo() {
         );
 
     const url =
-        URL.createObjectURL(blob);
+        URL.createObjectURL(
+            blob
+        );
 
     const enlace =
-        document.createElement("a");
+        document.createElement(
+            "a"
+        );
 
-    const fecha =
-        obtenerFechaHoy();
-
-    enlace.href = url;
+    enlace.href =
+        url;
 
     enlace.download =
-        `respaldo-hotel-${fecha}.json`;
+        `respaldo-hotel-${obtenerFechaHoy()}.json`;
 
     document.body.appendChild(
         enlace
@@ -4758,19 +8098,27 @@ function crearRespaldo() {
 
     enlace.remove();
 
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(
+        url
+    );
 
     registrarMovimiento(
-        "RESPALDO",
-        "-",
-        "Se creó una copia de seguridad manual."
+        "RESPALDO CREADO",
+        obtenerFechaHoy(),
+        "Respaldo manual del sistema."
     );
+
+    guardarDatos();
 
     notificar(
         "Respaldo creado correctamente."
     );
 }
 
+
+/* =========================================================
+   SELECCIONAR RESPALDO PARA RESTAURAR
+========================================================= */
 
 function seleccionarRespaldo() {
 
@@ -4779,16 +8127,27 @@ function seleccionarRespaldo() {
             "archivoRespaldo"
         );
 
-    input.value = "";
+    if (!input) {
+
+        return notificar(
+            "No se encontró el selector de respaldo."
+        );
+    }
 
     input.click();
 }
 
 
-function restaurarRespaldo(event) {
+/* =========================================================
+   RESTAURAR RESPALDO
+========================================================= */
+
+function restaurarRespaldo(
+    event
+) {
 
     const archivo =
-        event.target.files[0];
+        event?.target?.files?.[0];
 
     if (!archivo) {
         return;
@@ -4797,76 +8156,90 @@ function restaurarRespaldo(event) {
     const lector =
         new FileReader();
 
-    lector.onload = e => {
+    lector.onload =
+        function (e) {
 
-        try {
+            try {
 
-            const datos =
-                JSON.parse(
-                    e.target.result
+                const datos =
+                    JSON.parse(
+                        e.target.result
+                    );
+
+                if (
+                    !Array.isArray(
+                        datos.habitaciones
+                    )
+                    ||
+                    !Array.isArray(
+                        datos.reservas
+                    )
+                    ||
+                    !Array.isArray(
+                        datos.productos
+                    )
+                ) {
+
+                    throw new Error(
+                        "Formato no válido"
+                    );
+                }
+
+                const confirmar =
+                    window.confirm(
+                        "¿Restaurar este respaldo? Los datos actuales serán reemplazados."
+                    );
+
+                if (!confirmar) {
+                    return;
+                }
+
+                habitaciones =
+                    datos.habitaciones || [];
+
+                reservas =
+                    datos.reservas || [];
+
+                productos =
+                    datos.productos || [];
+
+                consumos =
+                    datos.consumos || [];
+
+                pagos =
+                    datos.pagos || [];
+
+                historial =
+                    datos.historial || [];
+
+                aperturasCaja =
+                    datos.aperturasCaja || {};
+
+                normalizarDatos();
+
+                actualizarEstadosAutomaticos();
+
+                guardarDatos();
+
+                renderTodo();
+
+                notificar(
+                    "Respaldo restaurado correctamente."
                 );
 
-            if (
-                !Array.isArray(datos.habitaciones) ||
-                !Array.isArray(datos.reservas) ||
-                !Array.isArray(datos.productos)
-            ) {
+            } catch (error) {
 
-                throw new Error(
-                    "Formato incorrecto"
+                console.error(
+                    error
+                );
+
+                notificar(
+                    "El archivo de respaldo no es válido."
                 );
             }
 
-            const confirmar =
-                confirm(
-                    "Restaurar este respaldo reemplazará los datos actuales. ¿Deseas continuar?"
-                );
-
-            if (!confirmar) {
-                return;
-            }
-
-            habitaciones =
-                datos.habitaciones || [];
-
-            reservas =
-                datos.reservas || [];
-
-            productos =
-                datos.productos || [];
-
-            consumos =
-                datos.consumos || [];
-
-            pagos =
-                datos.pagos || [];
-
-            historial =
-                datos.historial || [];
-
-            normalizarDatos();
-
-            registrarMovimiento(
-                "RESTAURACIÓN",
-                "-",
-                "Se restauró una copia de seguridad."
-            );
-
-            actualizarEstadosAutomaticos();
-
-            renderTodo();
-
-            notificar(
-                "Respaldo restaurado correctamente."
-            );
-
-        } catch (error) {
-
-            alert(
-                "El archivo seleccionado no es un respaldo válido."
-            );
-        }
-    };
+            event.target.value = "";
+        };
 
     lector.readAsText(
         archivo
@@ -4882,7 +8255,9 @@ function crearRespaldoAutomaticoLocal() {
 
     const respaldo = {
 
-        fecha:
+        version: 3,
+
+        creadoEn:
             new Date().toISOString(),
 
         habitaciones,
@@ -4895,15 +8270,23 @@ function crearRespaldoAutomaticoLocal() {
 
         pagos,
 
-        historial
+        historial,
+
+        aperturasCaja
     };
 
     localStorage.setItem(
         "hotel_respaldo_automatico",
-        JSON.stringify(respaldo)
+        JSON.stringify(
+            respaldo
+        )
     );
 }
 
+
+/* =========================================================
+   RESTAURAR RESPALDO AUTOMÁTICO
+========================================================= */
 
 function restaurarRespaldoAutomaticoLocal() {
 
@@ -4914,15 +8297,13 @@ function restaurarRespaldoAutomaticoLocal() {
 
     if (!contenido) {
 
-        alert(
+        return notificar(
             "No existe un respaldo automático."
         );
-
-        return;
     }
 
     const confirmar =
-        confirm(
+        window.confirm(
             "¿Restaurar el último respaldo automático?"
         );
 
@@ -4933,7 +8314,9 @@ function restaurarRespaldoAutomaticoLocal() {
     try {
 
         const datos =
-            JSON.parse(contenido);
+            JSON.parse(
+                contenido
+            );
 
         habitaciones =
             datos.habitaciones || [];
@@ -4953,6 +8336,13 @@ function restaurarRespaldoAutomaticoLocal() {
         historial =
             datos.historial || [];
 
+        aperturasCaja =
+            datos.aperturasCaja || {};
+
+        normalizarDatos();
+
+        actualizarEstadosAutomaticos();
+
         guardarDatos();
 
         renderTodo();
@@ -4961,51 +8351,499 @@ function restaurarRespaldoAutomaticoLocal() {
             "Respaldo automático restaurado."
         );
 
-    } catch {
+    } catch (error) {
 
-        alert(
-            "No se pudo restaurar el respaldo automático."
+        console.error(
+            error
+        );
+
+        notificar(
+            "No se pudo restaurar el respaldo."
         );
     }
 }
 
 
 /* =========================================================
+   LIMPIAR HISTORIAL
+========================================================= */
+
+function limpiarHistorial() {
+
+    const confirmar =
+        window.confirm(
+            "¿Seguro que deseas borrar todo el historial?"
+        );
+
+    if (!confirmar) {
+        return;
+    }
+
+    historial = [];
+
+    guardarDatos();
+
+    renderHistorial();
+
+    notificar(
+        "Historial eliminado."
+    );
+}
+/* =========================================================
    NOTIFICACIONES
 ========================================================= */
 
-let temporizadorNotificacion;
-
 function notificar(mensaje) {
 
-    const elemento =
+    let notificacion =
         document.getElementById(
             "notificacion"
         );
 
-    if (!elemento) {
-        return;
+
+    if (!notificacion) {
+
+        notificacion =
+            document.createElement(
+                "div"
+            );
+
+        notificacion.id =
+            "notificacion";
+
+        notificacion.className =
+            "notificacion";
+
+        document.body.appendChild(
+            notificacion
+        );
     }
 
-    elemento.textContent =
+
+    notificacion.textContent =
         mensaje;
 
-    elemento.classList.add(
+
+    notificacion.classList.add(
         "mostrar"
     );
 
+
     clearTimeout(
-        temporizadorNotificacion
+        notificacion._temporizador
     );
 
-    temporizadorNotificacion =
-        setTimeout(() => {
+
+    notificacion._temporizador =
+        setTimeout(
+            () => {
+
+                notificacion.classList.remove(
+                    "mostrar"
+                );
+
+            },
+            2800
+        );
+}
+
+
+/* =========================================================
+   CORREGIR FILTRO DE HABITACIONES
+========================================================= */
+
+function filtrarHabitaciones(
+    filtro,
+    elemento = null
+) {
+
+    filtroHabitacionActual =
+        filtro || "TODAS";
+
+
+    document
+        .querySelectorAll(
+            ".filtro-habitacion"
+        )
+        .forEach(
+            boton => {
+
+                boton.classList.remove(
+                    "activo"
+                );
+            }
+        );
+
+
+    if (elemento) {
+
+        elemento.classList.add(
+            "activo"
+        );
+    }
+
+
+    renderHabitaciones();
+}
+
+
+/* =========================================================
+   MARCAR HABITACIÓN COMO LISTA
+========================================================= */
+
+function marcarHabitacionLista(
+    habitacionId
+) {
+
+    const habitacion =
+        habitaciones.find(
+            h =>
+                Number(h.id) ===
+                Number(habitacionId)
+        );
+
+
+    if (!habitacion) {
+
+        return;
+    }
+
+
+    if (
+        habitacion.estado !==
+        "LIMPIEZA"
+    ) {
+
+        return notificar(
+            "La habitación no está en limpieza."
+        );
+    }
+
+
+    habitacion.estado =
+        "DISPONIBLE";
+
+
+    registrarMovimiento(
+        "HABITACIÓN LISTA",
+        habitacion.numero,
+        "Habitación disponible nuevamente."
+    );
+
+
+    guardarDatos();
+
+    renderTodo();
+
+
+    notificar(
+        `Habitación ${habitacion.numero} disponible.`
+    );
+}
+
+
+/* =========================================================
+   ACTUALIZAR ESTADOS DE HABITACIONES
+========================================================= */
+
+function actualizarEstadosHabitaciones() {
+
+    habitaciones.forEach(
+        habitacion => {
+
+            const ocupada =
+                reservas.some(
+                    reserva =>
+                        Number(
+                            reserva.habitacionId
+                        ) ===
+                            Number(
+                                habitacion.id
+                            )
+                        &&
+                        reserva.estado ===
+                            "OCUPADA"
+                );
+
+
+            if (ocupada) {
+
+                habitacion.estado =
+                    "OCUPADA";
+
+                return;
+            }
+
+
+            /*
+             * Si está en LIMPIEZA no la cambiamos
+             * automáticamente.
+             */
+
+            if (
+                habitacion.estado ===
+                "LIMPIEZA"
+            ) {
+
+                return;
+            }
+
+
+            habitacion.estado =
+                "DISPONIBLE";
+        }
+    );
+}
+
+
+/* =========================================================
+   BUSCAR RESERVAS
+========================================================= */
+
+function buscarReservas() {
+
+    const texto =
+        document.getElementById(
+            "buscarReserva"
+        )?.value
+            .trim()
+            .toLowerCase() || "";
+
+
+    const filas =
+        document.querySelectorAll(
+            "#tablaReservas tr"
+        );
+
+
+    filas.forEach(
+        fila => {
+
+            const contenido =
+                fila.textContent
+                    .toLowerCase();
+
+
+            fila.style.display =
+                contenido.includes(
+                    texto
+                )
+                    ?
+                    ""
+                    :
+                    "none";
+        }
+    );
+}
+
+
+/* =========================================================
+   BUSCAR HUÉSPEDES
+========================================================= */
+
+function buscarHuespedes() {
+
+    const texto =
+        document.getElementById(
+            "buscarHuesped"
+        )?.value
+            .trim()
+            .toLowerCase() || "";
+
+
+    const filas =
+        document.querySelectorAll(
+            "#tablaHuespedes tr"
+        );
+
+
+    filas.forEach(
+        fila => {
+
+            const contenido =
+                fila.textContent
+                    .toLowerCase();
+
+
+            fila.style.display =
+                contenido.includes(
+                    texto
+                )
+                    ?
+                    ""
+                    :
+                    "none";
+        }
+    );
+}
+
+
+/* =========================================================
+   BUSCAR PRODUCTOS
+========================================================= */
+
+function buscarProductos() {
+
+    const texto =
+        document.getElementById(
+            "buscarProducto"
+        )?.value
+            .trim()
+            .toLowerCase() || "";
+
+
+    const filas =
+        document.querySelectorAll(
+            "#tablaProductos tr"
+        );
+
+
+    filas.forEach(
+        fila => {
+
+            const contenido =
+                fila.textContent
+                    .toLowerCase();
+
+
+            fila.style.display =
+                contenido.includes(
+                    texto
+                )
+                    ?
+                    ""
+                    :
+                    "none";
+        }
+    );
+}
+
+
+/* =========================================================
+   CERRAR MODAL HACIENDO CLIC FUERA
+========================================================= */
+
+window.addEventListener(
+    "click",
+    function (event) {
+
+        const elemento =
+            event.target;
+
+
+        if (
+            elemento.classList &&
+            elemento.classList.contains(
+                "modal"
+            )
+        ) {
 
             elemento.classList.remove(
-                "mostrar"
+                "activo"
             );
+        }
+    }
+);
 
-        }, 2800);
+
+/* =========================================================
+   TECLA ESC PARA CERRAR MODALES
+========================================================= */
+
+document.addEventListener(
+    "keydown",
+    function (event) {
+
+        if (
+            event.key ===
+            "Escape"
+        ) {
+
+            document
+                .querySelectorAll(
+                    ".modal.activo"
+                )
+                .forEach(
+                    modal => {
+
+                        modal.classList.remove(
+                            "activo"
+                        );
+                    }
+                );
+        }
+    }
+);
+
+
+/* =========================================================
+   ACTUALIZAR RELOJES DE ESTADÍAS POR HORA
+========================================================= */
+
+function actualizarRelojesEstadias() {
+
+    const elementos =
+        document.querySelectorAll(
+            "[data-fin-estadia]"
+        );
+
+
+    elementos.forEach(
+        elemento => {
+
+            const fechaFin =
+                elemento.getAttribute(
+                    "data-fin-estadia"
+                );
+
+
+            if (!fechaFin) {
+                return;
+            }
+
+
+            elemento.textContent =
+                obtenerTiempoRestante(
+                    fechaFin
+                );
+        }
+    );
+}
+
+
+/* =========================================================
+   INICIAR RELOJ VISUAL
+========================================================= */
+
+setInterval(
+    actualizarRelojesEstadias,
+    1000
+);
+
+
+/* =========================================================
+   CONFIGURACIÓN INICIAL DE CAJA
+========================================================= */
+
+function configurarCajaInicial() {
+
+    const fechaCaja =
+        document.getElementById(
+            "fechaCaja"
+        );
+
+
+    if (
+        fechaCaja &&
+        !fechaCaja.value
+    ) {
+
+        fechaCaja.value =
+            obtenerFechaHoy();
+    }
+
+
+    configurarFechasReporte();
 }
 
 
@@ -5016,6 +8854,9 @@ function notificar(mensaje) {
 function renderTodo() {
 
     actualizarEstadosAutomaticos();
+
+    actualizarEstadosHabitaciones();
+
 
     renderResumen();
 
@@ -5037,55 +8878,60 @@ function renderTodo() {
 
     renderHistorial();
 
+
     crearRespaldoAutomaticoLocal();
 }
 
 
 /* =========================================================
-   CERRAR MODAL HACIENDO CLIC FUERA
+   INICIALIZACIÓN FINAL
 ========================================================= */
 
-window.addEventListener(
-    "click",
-    event => {
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
 
-        if (
-            event.target.classList &&
-            event.target.classList.contains(
-                "modal"
-            )
-        ) {
+        configurarCajaInicial();
 
-            event.target.classList.remove(
-                "activo"
-            );
-        }
+        renderTodo();
+
+
+        /*
+         * Revisar estadías por hora
+         * inmediatamente.
+         */
+
+        controlarEstadiasPorHora();
+
+
+        /*
+         * Actualizar reloj visual.
+         */
+
+        actualizarRelojesEstadias();
     }
 );
 
 
 /* =========================================================
-   ESC PARA CERRAR MODALES
+   GUARDADO AUTOMÁTICO ANTES DE CERRAR
 ========================================================= */
 
-document.addEventListener(
-    "keydown",
-    event => {
+window.addEventListener(
+    "beforeunload",
+    function () {
 
-        if (
-            event.key === "Escape"
-        ) {
+        guardarDatos();
 
-            document
-                .querySelectorAll(
-                    ".modal.activo"
-                )
-                .forEach(
-                    modal =>
-                        modal.classList.remove(
-                            "activo"
-                        )
-                );
-        }
+        crearRespaldoAutomaticoLocal();
     }
+);
+
+
+/* =========================================================
+   FIN DEL SCRIPT
+========================================================= */
+
+console.log(
+    "Sistema Hotel cargado correctamente."
 );
