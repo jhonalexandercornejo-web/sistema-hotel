@@ -1,0 +1,1276 @@
+/* =====================================================
+   SISTEMA HOTELERO - STYLE.CSS
+===================================================== */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    min-width: 1100px;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f6f9;
+    color: #1f2937;
+}
+
+button,
+input,
+select {
+    font-family: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+
+/* =====================================================
+   SIDEBAR
+===================================================== */
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 235px;
+    height: 100vh;
+    background: #102a43;
+    color: white;
+    overflow-y: auto;
+    z-index: 100;
+}
+
+.logo {
+    padding: 22px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid rgba(255,255,255,.12);
+}
+
+.logo-icono {
+    width: 45px;
+    height: 45px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: white;
+    color: #102a43;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 23px;
+}
+
+.logo h2 {
+    font-size: 16px;
+    margin-bottom: 3px;
+}
+
+.logo span {
+    color: #bcccdc;
+    font-size: 11px;
+}
+
+.sidebar nav {
+    padding: 15px 10px 30px;
+}
+
+.menu-item {
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: #d9e2ec;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 13px;
+    margin-bottom: 4px;
+    border-radius: 7px;
+    font-size: 13px;
+    text-align: left;
+    transition: .2s;
+}
+
+.menu-item:hover {
+    background: rgba(255,255,255,.09);
+    color: white;
+}
+
+.menu-item.activo {
+    background: #2563eb;
+    color: white;
+}
+
+
+/* =====================================================
+   CONTENIDO
+===================================================== */
+
+.contenido {
+    margin-left: 235px;
+    min-height: 100vh;
+}
+
+.topbar {
+    height: 78px;
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+.titulo-topbar h1 {
+    font-size: 21px;
+    color: #102a43;
+}
+
+.titulo-topbar p {
+    color: #64748b;
+    font-size: 12px;
+    margin-top: 4px;
+    text-transform: capitalize;
+}
+
+.usuario {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.usuario strong,
+.usuario small {
+    display: block;
+}
+
+.usuario strong {
+    font-size: 13px;
+}
+
+.usuario small {
+    margin-top: 2px;
+    color: #64748b;
+}
+
+.avatar {
+    width: 39px;
+    height: 39px;
+    border-radius: 50%;
+    background: #2563eb;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+
+/* =====================================================
+   SECCIONES
+===================================================== */
+
+.seccion {
+    display: none;
+    padding: 28px;
+}
+
+.seccion.activa {
+    display: block;
+}
+
+.encabezado-seccion {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+}
+
+.encabezado-seccion h2 {
+    color: #102a43;
+    font-size: 23px;
+}
+
+.encabezado-seccion p {
+    color: #64748b;
+    font-size: 13px;
+    margin-top: 5px;
+}
+
+
+/* =====================================================
+   BOTONES
+===================================================== */
+
+.btn-principal,
+.btn-secundario,
+.btn-guardar,
+.btn-respaldo,
+.btn-restaurar {
+    border: none;
+    border-radius: 7px;
+    padding: 11px 17px;
+    font-weight: 600;
+    transition: .2s;
+}
+
+.btn-principal,
+.btn-guardar {
+    background: #2563eb;
+    color: white;
+}
+
+.btn-principal:hover,
+.btn-guardar:hover {
+    background: #1d4ed8;
+}
+
+.btn-secundario {
+    background: #eef2f7;
+    border: 1px solid #d9e2ec;
+    color: #334e68;
+}
+
+.btn-secundario:hover {
+    background: #e2e8f0;
+}
+
+.btn-guardar {
+    width: 100%;
+    margin-top: 20px;
+    padding: 13px;
+}
+
+
+/* =====================================================
+   RESUMEN
+===================================================== */
+
+.resumen {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.card-resumen {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 2px 8px rgba(15,23,42,.05);
+}
+
+.card-resumen span {
+    color: #64748b;
+    font-size: 12px;
+}
+
+.card-resumen h2 {
+    color: #102a43;
+    font-size: 22px;
+    margin-top: 5px;
+}
+
+.icono-card {
+    width: 45px;
+    height: 45px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.icono-card.azul {
+    background: #dbeafe;
+}
+
+.icono-card.verde {
+    background: #dcfce7;
+}
+
+.icono-card.rojo {
+    background: #fee2e2;
+}
+
+.icono-card.amarillo {
+    background: #fef3c7;
+}
+
+
+/* =====================================================
+   PANELES
+===================================================== */
+
+.panel {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 22px;
+    box-shadow: 0 2px 8px rgba(15,23,42,.04);
+}
+
+.panel-cabecera {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+}
+
+.panel-cabecera h3 {
+    color: #102a43;
+    font-size: 17px;
+}
+
+.panel-cabecera p {
+    color: #64748b;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+
+/* =====================================================
+   HABITACIONES
+===================================================== */
+
+.habitaciones-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(190px, 1fr));
+    gap: 15px;
+}
+
+.habitacion-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 17px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.04);
+    position: relative;
+}
+
+.numero-habitacion {
+    color: #102a43;
+    font-size: 25px;
+    font-weight: bold;
+}
+
+.tipo-habitacion {
+    color: #64748b;
+    font-size: 12px;
+    margin: 5px 0 10px;
+}
+
+.estado {
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+.estado-disponible {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.estado-ocupada {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.estado-limpieza {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.estado-mantenimiento {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+.estado-reservada {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.precio-habitacion {
+    margin-top: 13px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.acciones-habitacion {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 14px;
+}
+
+.acciones-habitacion button {
+    border: none;
+    border-radius: 5px;
+    padding: 7px 9px;
+    background: #eef2f7;
+    color: #334e68;
+    font-size: 11px;
+}
+
+.acciones-habitacion button:hover {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.acciones-habitacion .btn-eliminar {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.acciones-habitacion .btn-editar {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+
+/* =====================================================
+   FILTROS
+===================================================== */
+
+.filtros {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.filtro {
+    border: 1px solid #d9e2ec;
+    background: white;
+    color: #52667a;
+    border-radius: 7px;
+    padding: 9px 13px;
+    font-size: 12px;
+}
+
+.filtro:hover {
+    background: #f8fafc;
+}
+
+.filtro.activo {
+    background: #2563eb;
+    color: white;
+    border-color: #2563eb;
+}
+
+
+/* =====================================================
+   BUSCADORES
+===================================================== */
+
+.buscador {
+    margin-bottom: 17px;
+}
+
+.buscador input {
+    width: 380px;
+    max-width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 7px;
+    outline: none;
+}
+
+.buscador input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37,99,235,.08);
+}
+
+
+/* =====================================================
+   TABLAS
+===================================================== */
+
+.tabla-responsive {
+    width: 100%;
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 760px;
+}
+
+th {
+    padding: 11px 10px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e5e7eb;
+    color: #475569;
+    font-size: 11px;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+td {
+    padding: 11px 10px;
+    border-bottom: 1px solid #eef2f7;
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+tbody tr:hover {
+    background: #fafcff;
+}
+
+.tabla-boton {
+    border: none;
+    border-radius: 5px;
+    padding: 6px 8px;
+    margin: 2px;
+    background: #eef2f7;
+    color: #334e68;
+    font-size: 10px;
+}
+
+.tabla-boton:hover {
+    background: #dbeafe;
+}
+
+.tabla-boton.azul {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.tabla-boton.verde {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.tabla-boton.rojo {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.tabla-boton.rojo:hover {
+    background: #fecaca;
+}
+
+
+/* =====================================================
+   MODALES
+===================================================== */
+
+.modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(15,23,42,.58);
+    z-index: 1000;
+}
+
+.modal.activo {
+    display: flex;
+}
+
+.modal-contenido {
+    width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    position: relative;
+    box-shadow: 0 20px 50px rgba(0,0,0,.25);
+}
+
+.modal-grande {
+    width: 760px;
+}
+
+.modal-contenido h2 {
+    color: #102a43;
+    font-size: 20px;
+    margin-bottom: 20px;
+}
+
+.cerrar {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 21px;
+}
+
+.cerrar:hover {
+    background: #e2e8f0;
+}
+
+
+/* =====================================================
+   FORMULARIOS
+===================================================== */
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+}
+
+.campo {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.campo label {
+    color: #475569;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.campo input,
+.campo select {
+    width: 100%;
+    padding: 10px 11px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    outline: none;
+    background: white;
+}
+
+.campo input:focus,
+.campo select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37,99,235,.08);
+}
+
+.calculo-reserva {
+    margin-top: 18px;
+    padding: 15px;
+    border-radius: 8px;
+    background: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.calculo-reserva span {
+    color: #64748b;
+}
+
+.calculo-reserva strong {
+    color: #102a43;
+    font-size: 21px;
+}
+
+
+/* =====================================================
+   RESERVAS FUTURAS
+===================================================== */
+
+.reserva-futura {
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 20px;
+    background: #dbeafe;
+    color: #1d4ed8;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+.reserva-activa {
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 20px;
+    background: #dcfce7;
+    color: #166534;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+.reserva-finalizada {
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 20px;
+    background: #e5e7eb;
+    color: #374151;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+.reserva-cancelada {
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 20px;
+    background: #fee2e2;
+    color: #991b1b;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+
+/* =====================================================
+   PRODUCTOS Y CONSUMOS
+===================================================== */
+
+.cabecera-productos-consumo {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 10px;
+    padding: 10px;
+    margin-top: 18px;
+    background: #f8fafc;
+    border-radius: 6px;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.lista-productos-consumo {
+    max-height: 330px;
+    overflow-y: auto;
+    margin-top: 5px;
+}
+
+.producto-consumo-fila {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #eef2f7;
+    font-size: 12px;
+}
+
+.producto-consumo-fila strong {
+    color: #102a43;
+}
+
+.cantidad-producto {
+    width: 80px;
+    padding: 7px;
+    border: 1px solid #d1d5db;
+    border-radius: 5px;
+}
+
+.total-productos-consumo {
+    margin-top: 15px;
+    padding: 15px;
+    background: #eff6ff;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.total-productos-consumo strong {
+    color: #1d4ed8;
+    font-size: 20px;
+}
+
+
+/* =====================================================
+   CUENTA
+===================================================== */
+
+.cuenta-cabecera {
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.cuenta-cabecera h3 {
+    color: #102a43;
+    margin-bottom: 5px;
+}
+
+.cuenta-cabecera p {
+    color: #64748b;
+    font-size: 12px;
+    margin-top: 3px;
+}
+
+.cuenta-linea {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #eef2f7;
+    font-size: 13px;
+}
+
+.cuenta-linea.total {
+    font-size: 15px;
+    font-weight: bold;
+}
+
+.cuenta-linea.saldo {
+    color: #b91c1c;
+    font-size: 17px;
+    font-weight: bold;
+}
+
+.cuenta-acciones {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.cuenta-acciones button {
+    flex: 1;
+}
+
+
+/* =====================================================
+   PAGOS
+===================================================== */
+
+.detalle-pago-saldo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    background: #fff7ed;
+}
+
+.detalle-pago-saldo span {
+    color: #7c2d12;
+}
+
+.detalle-pago-saldo strong {
+    color: #c2410c;
+    font-size: 20px;
+}
+
+.campo-pago {
+    margin-top: 14px;
+}
+
+
+/* =====================================================
+   CAJA
+===================================================== */
+
+.filtro-fechas {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.filtro-fechas .campo {
+    width: 220px;
+}
+
+.resumen-caja {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.total-caja-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #102a43;
+    color: white;
+}
+
+.total-caja-panel span {
+    font-size: 13px;
+}
+
+.total-caja-panel strong {
+    font-size: 26px;
+}
+
+
+/* =====================================================
+   REPORTES
+===================================================== */
+
+.filtro-reporte {
+    display: flex;
+    align-items: end;
+    gap: 15px;
+}
+
+.filtro-reporte .campo {
+    width: 220px;
+}
+
+.tabla-reporte {
+    margin-top: 15px;
+}
+
+
+/* =====================================================
+   HISTORIAL
+===================================================== */
+
+.historial-accion {
+    display: inline-block;
+    padding: 5px 8px;
+    border-radius: 5px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+.historial-fecha {
+    color: #64748b;
+    white-space: nowrap;
+}
+
+.historial-detalle {
+    color: #334155;
+}
+
+.historial-habitacion {
+    font-weight: bold;
+    color: #102a43;
+}
+
+
+/* =====================================================
+   RESPALDO
+===================================================== */
+
+.seguridad-cabecera {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.seguridad-icono {
+    width: 65px;
+    height: 65px;
+    flex-shrink: 0;
+    border-radius: 14px;
+    background: #dbeafe;
+    color: #1d4ed8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 31px;
+}
+
+.seguridad-cabecera h3 {
+    color: #102a43;
+    font-size: 18px;
+    margin-bottom: 6px;
+}
+
+.seguridad-cabecera p {
+    max-width: 650px;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.seguridad-botones {
+    display: flex;
+    gap: 15px;
+    margin-top: 22px;
+}
+
+.btn-respaldo {
+    min-width: 190px;
+    background: #2563eb;
+    color: white;
+}
+
+.btn-respaldo:hover {
+    background: #1d4ed8;
+}
+
+.btn-restaurar {
+    min-width: 190px;
+    background: #059669;
+    color: white;
+}
+
+.btn-restaurar:hover {
+    background: #047857;
+}
+
+.aviso-respaldo {
+    margin-top: 22px;
+    padding: 14px;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    background: #fffbeb;
+    color: #92400e;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.lista-seguridad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 17px;
+}
+
+.lista-seguridad div {
+    padding: 13px;
+    border: 1px solid #e5e7eb;
+    border-radius: 7px;
+    background: #f8fafc;
+    color: #334155;
+    font-size: 12px;
+}
+
+
+/* =====================================================
+   COMPROBANTE
+===================================================== */
+
+.modal-comprobante {
+    width: 450px;
+}
+
+.comprobante {
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.comprobante-encabezado {
+    text-align: center;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+    border-bottom: 1px dashed #94a3b8;
+}
+
+.comprobante-encabezado h2 {
+    margin-bottom: 5px;
+}
+
+.comprobante-encabezado p {
+    color: #64748b;
+    font-size: 11px;
+}
+
+.comprobante-dato {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 12px;
+}
+
+.comprobante-total {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+    padding-top: 12px;
+    border-top: 1px dashed #94a3b8;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+
+/* =====================================================
+   NOTIFICACIONES
+===================================================== */
+
+.notificacion {
+    position: fixed;
+    right: 25px;
+    bottom: 25px;
+    z-index: 3000;
+    padding: 13px 18px;
+    border-radius: 8px;
+    background: #102a43;
+    color: white;
+    box-shadow: 0 10px 25px rgba(0,0,0,.2);
+    font-size: 13px;
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none;
+    transition: .25s;
+}
+
+.notificacion.mostrar {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+
+/* =====================================================
+   PANTALLAS GRANDES
+===================================================== */
+
+@media (min-width: 1500px) {
+
+    .habitaciones-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+
+    .seccion {
+        padding: 32px 38px;
+    }
+}
+
+
+/* =====================================================
+   ESCRITORIO MEDIANO
+===================================================== */
+
+@media (max-width: 1250px) {
+
+    .habitaciones-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .resumen {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .resumen-caja {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+
+/* =====================================================
+   IMPRESIÓN DE COMPROBANTE
+===================================================== */
+
+@media print {
+
+    body * {
+        visibility: hidden !important;
+    }
+
+    #modalComprobante,
+    #modalComprobante * {
+        visibility: visible !important;
+    }
+
+    #modalComprobante {
+        position: absolute;
+        inset: 0;
+        display: block !important;
+        background: white;
+        padding: 0;
+    }
+
+    #modalComprobante .modal-contenido {
+        width: 100%;
+        max-width: 420px;
+        margin: 0 auto;
+        padding: 20px;
+        box-shadow: none;
+        border: none;
+        overflow: visible;
+    }
+
+    .no-imprimir {
+        display: none !important;
+    }
+}
+
+/* =====================================================
+   ESTADÍAS POR HORAS / APERTURA DE CAJA
+===================================================== */
+
+.dato-fin-estadia {
+    min-height: 39px;
+    padding: 10px 11px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #f8fafc;
+    color: #102a43;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.tiempo-estadia {
+    margin-top: 9px;
+    padding: 9px 10px;
+    border-radius: 7px;
+    background: #fff7ed;
+    color: #9a3412;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.tiempo-estadia strong {
+    color: #c2410c;
+}
+
+.tiempo-estadia.tiempo-terminado {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.tiempo-estadia.tiempo-terminado strong {
+    color: #b91c1c;
+}
+
+.apertura-caja-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.apertura-caja-panel p {
+    margin-top: 5px;
+    color: #64748b;
+    font-size: 12px;
+}
+
+.apertura-caja-controles {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.apertura-caja-controles input {
+    width: 130px;
+    padding: 10px 11px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    outline: none;
+}
+
+.apertura-caja-resumen {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 190px;
+    color: #475569;
+    font-size: 12px;
+}
+
+.apertura-caja-resumen strong {
+    color: #102a43;
+}
